@@ -73,6 +73,9 @@ class FeedsController: UITableViewController {
             nc.addChild(vc)
             self.navigationController?.showDetailViewController(nc, sender: Any.self)
         }
+        cell.onShareTap = {
+            FeedSharer.share(in: self, feedCaption: feed.text, feedOwner: "\(feed.owner.firstName) \(feed.owner.lastName)", feedImageUrlString: feed.image)
+        }
         return cell
     }
 
@@ -134,6 +137,9 @@ class FeedCell: UITableViewCell {
     
     typealias OnAvatarTapped = () -> Void
     var onAvatarTap: OnAvatarTapped?
+    
+    typealias OnShareTapped = () -> Void
+    var onShareTap: OnShareTapped?
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -210,6 +216,7 @@ class FeedCell: UITableViewCell {
         shareButton.contentMode = .scaleAspectFill
         shareButton.imageView?.widthAnchor.constraint(equalToConstant: 25).isActive = true
         shareButton.imageView?.widthAnchor.constraint(equalToConstant: 25).isActive = true
+        shareButton.addTarget(Any.self, action: #selector(onShareButtonTapped), for: .touchUpInside)
         
         saveButton.translatesAutoresizingMaskIntoConstraints = false
         saveButton.setImage(UIImage(systemName: "flag")?.withRenderingMode(.automatic), for: .normal)
@@ -360,7 +367,10 @@ extension FeedCell {
     
     @objc private func onAvatarImageTapped() {
         onAvatarTap?()
-        print("touched")
+    }
+    
+    @objc private func onShareButtonTapped() {
+        onShareTap?()
     }
     
 }

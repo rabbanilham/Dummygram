@@ -138,4 +138,17 @@ struct DummyAPI {
                 print(response)
             }
     }
+    
+    func deleteComment() {
+        
+        let headers: HTTPHeaders = [
+            "app-id" : "625534f6d7e95833f9570907",
+        ]
+        
+        AF.request(baseURL + query, method: .delete, encoding: JSONEncoding.default, headers: headers)
+            .validate()
+            .response { response in
+                print(response)
+            }
+    }
 }

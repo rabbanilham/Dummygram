@@ -167,6 +167,9 @@ extension BrowseViewController: UICollectionViewDataSource {
                     nc.addChild(vc)
                     self.navigationController?.showDetailViewController(nc, sender: Any.self)
                 }
+                cell.onShareTap = {
+                    FeedSharer.share(in: self, feedCaption: feed.text, feedOwner: "\(feed.owner.firstName) \(feed.owner.lastName)", feedImageUrlString: feed.image)
+                }
             }
             
         default:
@@ -234,6 +237,9 @@ final class BrowseViewCell: UICollectionViewCell {
     
     typealias OnAvatarTapped = () -> Void
     var onAvatarTap: OnAvatarTapped?
+    
+    typealias OnShareTapped = () -> Void
+    var onShareTap: OnShareTapped?
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -306,7 +312,8 @@ final class BrowseViewCell: UICollectionViewCell {
         shareButton.setImage(UIImage(systemName: "paperplane")?.withRenderingMode(.automatic), for: .normal)
         shareButton.tintColor = .label
         shareButton.contentMode = .scaleAspectFill
-        
+        shareButton.addTarget(Any.self, action: #selector(onShareButtonTapped), for: .touchUpInside)
+
         saveButton.translatesAutoresizingMaskIntoConstraints = false
         saveButton.setImage(UIImage(systemName: "flag")?.withRenderingMode(.automatic), for: .normal)
         saveButton.tintColor = .label
@@ -443,6 +450,10 @@ extension BrowseViewCell {
     @objc private func onAvatarImageTapped() {
         onAvatarTap?()
         print("touched")
+    }
+    
+    @objc private func onShareButtonTapped() {
+        onShareTap?()
     }
     
 }

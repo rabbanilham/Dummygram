@@ -45,11 +45,13 @@ final class CommentViewController: UITableViewController {
         loadingIndicator.makeConstraint(builder: builder)
         
         
+        tableView.register(FeedAndTextFieldCell.self, forCellReuseIdentifier: "\(FeedAndTextFieldCell.self)")
         tableView.register(CommentCell.self, forCellReuseIdentifier: "\(CommentCell.self)")
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 80
         tableView.separatorStyle = .none
+        tableView.beginUpdates()
+        tableView.endUpdates()
         
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(onCancelButtonTap))
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Send", style: .done, target: self, action: #selector(onSendCommentButtonTap))
@@ -68,7 +70,7 @@ final class CommentViewController: UITableViewController {
         
         switch row {
         case 0:
-            guard let cell = tableView.dequeueReusableCell(withIdentifier: "\(CommentCell.self)", for: indexPath) as? CommentCell else { return UITableViewCell() }
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: "\(FeedAndTextFieldCell.self)", for: indexPath) as? FeedAndTextFieldCell else { return UITableViewCell() }
             cell.commentDidEndEditing = { comment in
                 self.comment = comment
             }
@@ -81,26 +83,62 @@ final class CommentViewController: UITableViewController {
             return cell
             
         default:
-            let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+            guard let cell = tableView.dequeueReusableCell(withIdentifier: "\(CommentCell.self)", for: indexPath) as? CommentCell else {
+                return UITableViewCell()
+            }
             cell.selectionStyle = .none
             guard let displayedComments = displayedComments else {
                 return UITableViewCell()
             }
-            let attrUsername = NSMutableAttributedString(
-                string: (displayedComments[row - 1].owner.firstName.lowercased()) + (displayedComments[row - 1].owner.lastName.lowercased()),
-                attributes: [.font : UIFont.systemFont(ofSize: 14, weight: .semibold)]
-            )
-            let attrComment = NSAttributedString(
-                string: " \(displayedComments[row - 1].message)",
-                attributes: [.font : UIFont.systemFont(ofSize: 14)]
-            )
-            attrUsername.append(attrComment)
-            cell.textLabel?.attributedText = attrUsername
-            cell.contentView.heightAnchor.constraint(equalToConstant: 25).isActive = true
+            cell.fill(with: displayedComments[row - 1])
+            
+            cell.onAvatarTap = {
+                let vc = UserDetailViewController()
+                vc.title = displayedComments[indexPath.row - 1].owner.firstName.lowercased() + displayedComments[indexPath.row - 1].owner.lastName.lowercased()
+                let userId = displayedComments[indexPath.row - 1].owner.id
+                vc.API = DummyAPI(query: "/user/\(userId)")
+                let nc = UINavigationController()
+                nc.addChild(vc)
+                self.navigationController?.showDetailViewController(nc, sender: Any.self)
+            }
             return cell
         }
     }
     
+    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let row = indexPath.row
+        
+        switch row {
+        case 0:
+            return nil
+        default:
+            let row = indexPath.row - 1
+    //        guard let displayedComments = displayedComments else { return nil }
+            let comment = displayedComments?[row]
+            
+            let item = UIContextualAction(style: .destructive, title: "Delete") {  (contextualAction, view, boolValue) in
+                let ac = UIAlertController(title: "Say goodbye to this comment", message: "Are you sure want to delete this comment? This action cannot be undone.", preferredStyle: .alert)
+                let delete = UIAlertAction(title: "Delete", style: .destructive) { _ in
+                    let API = DummyAPI(query: "/comment/\(comment?.id ?? "")")
+                    API.deleteComment()
+                    self.displayedComments?.remove(at: row)
+                    boolValue(true)
+                    self.tableView.reloadData()
+                }
+                let cancel = UIAlertAction(title: "Cancel", style: .cancel)
+                ac.addAction(cancel)
+                ac.addAction(delete)
+                self.present(ac, animated: true)
+                }
+    //        item.image = UIImage(systemName: "x.circle")
+            item.title = "Delete"
+            
+
+            let swipeActions = UISwipeActionsConfiguration(actions: [item])
+
+            return swipeActions
+        }
+    }
     
 }
 
@@ -160,12 +198,16 @@ extension CommentViewController {
         API?.addComment(comment: comment ?? "", ownerId: ownerIds.randomElement()!, postId: id)
         navigationController?.dismiss(animated: true)
     }
+    
 }
 
-class CommentCell: UITableViewCell {
+final class FeedAndTextFieldCell: UITableViewCell {
     
     typealias CommentDidEndEditing = (String) -> Void
     var commentDidEndEditing: CommentDidEndEditing?
+    
+    typealias OnAvatarTapped = () -> Void
+    var onAvatarTap: OnAvatarTapped?
     
     let photoView = UIImageView()
     let captionLabel = UILabel()
@@ -237,4 +279,80 @@ class CommentCell: UITableViewCell {
     }
     
 }
+
+final class CommentCell: UITableViewCell {
+
+    let avatarImageView = UIImageView()
+    let usernameAndCommentLabel = UILabel()
+    
+    typealias OnAvatarTapped = () -> Void
+    var onAvatarTap: OnAvatarTapped?
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        defineLayout()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    func defineLayout() {
+        
+        let avatarTap = UITapGestureRecognizer(target: self, action: #selector(onAvatarImageTapped))
+        avatarImageView.translatesAutoresizingMaskIntoConstraints = false
+        avatarImageView.clipsToBounds = true
+        avatarImageView.layer.cornerRadius = 16
+        avatarImageView.isUserInteractionEnabled = true
+        avatarImageView.contentMode = .scaleAspectFill
+        avatarImageView.addGestureRecognizer(avatarTap)
+
+        let usernameTap = UITapGestureRecognizer(target: self, action: #selector(onAvatarImageTapped))
+        usernameAndCommentLabel.translatesAutoresizingMaskIntoConstraints = false
+        usernameAndCommentLabel.numberOfLines = 0
+        usernameAndCommentLabel.addGestureRecognizer(usernameTap)
+        
+        contentView.addSubview(avatarImageView)
+        contentView.addSubview(usernameAndCommentLabel)
+        
+        NSLayoutConstraint.activate([
+        
+            avatarImageView.topAnchor.constraint(equalTo: contentView.layoutMarginsGuide.topAnchor),
+            avatarImageView.leadingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.leadingAnchor),
+            avatarImageView.heightAnchor.constraint(equalToConstant: 32),
+            avatarImageView.widthAnchor.constraint(equalToConstant: 32),
+            
+            usernameAndCommentLabel.topAnchor.constraint(equalTo: avatarImageView.centerYAnchor, constant: -10),
+            usernameAndCommentLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 10),
+            usernameAndCommentLabel.trailingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.trailingAnchor),
+            usernameAndCommentLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.layoutMarginsGuide.bottomAnchor),
+            
+            contentView.layoutMarginsGuide.bottomAnchor.constraint(greaterThanOrEqualTo: avatarImageView.bottomAnchor),
+//            contentView.heightAnchor.constraint(greaterThanOrEqualToConstant: 60)
+        
+        ])
+
+    }
+    
+    func fill(with comment: CommentModel) {
+        avatarImageView.kf.setImage(with: URL(string: comment.owner.picture))
+        
+        let attrUsername = NSMutableAttributedString(
+            string: "\(comment.owner.firstName.lowercased())\(comment.owner.lastName.lowercased())",
+            attributes: [.font : UIFont.systemFont(ofSize: 14, weight: .semibold)]
+        )
+        let attrComment = NSAttributedString(
+            string: " \(comment.message)",
+            attributes: [.font : UIFont.systemFont(ofSize: 14)]
+        )
+        attrUsername.append(attrComment)
+        usernameAndCommentLabel.attributedText = attrUsername
+    }
+    
+    @objc func onAvatarImageTapped() {
+        onAvatarTap?()
+    }
+
+}
+
 
