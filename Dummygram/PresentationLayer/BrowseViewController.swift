@@ -31,6 +31,14 @@ final class BrowseViewController: UIViewController {
         setupAddSubview()
         setupConstraint()
         
+        let refreshButton = UIBarButtonItem(
+            image: UIImage(systemName: "arrow.clockwise"),
+            style: .plain,
+            target: self,
+            action: #selector(refreshFeeds)
+        )
+        navigationItem.rightBarButtonItem = refreshButton
+
         view.addSubview(loadingIndicator)
         
         let builder: (UIView) -> [NSLayoutConstraint] = { view in
@@ -85,16 +93,27 @@ final class BrowseViewController: UIViewController {
     private func makeFavoriteSection() -> NSCollectionLayoutSection {
                 
         let item: NSCollectionLayoutItem = {
-            let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1))
+            let itemSize = NSCollectionLayoutSize(
+                widthDimension: .fractionalWidth(1),
+                heightDimension: .fractionalHeight(1)
+            )
             let item = NSCollectionLayoutItem(layoutSize: itemSize)
             return item
         }()
         
-        let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.8), heightDimension: .fractionalWidth(1))
+        let groupSize = NSCollectionLayoutSize(
+            widthDimension: .fractionalWidth(0.8),
+            heightDimension: .fractionalWidth(1)
+        )
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
         
         let section = NSCollectionLayoutSection(group: group)
-        section.contentInsets = NSDirectionalEdgeInsets(top: 130, leading: 2.5, bottom: 50, trailing: 2.5)
+        section.contentInsets = NSDirectionalEdgeInsets(
+            top: 130,
+            leading: 2.5,
+            bottom: 50,
+            trailing: 2.5
+        )
         section.orthogonalScrollingBehavior = .groupPagingCentered
         section.visibleItemsInvalidationHandler = { (items, offset, environment) in
             items.forEach { item in
@@ -150,10 +169,10 @@ extension BrowseViewController: UICollectionViewDataSource {
                 cell.backgroundColor = .secondarySystemBackground
                 cell.onCommentTap = {
                     let vc = CommentViewController()
+                    vc.postId = feed.id
                     guard let postId = cell.postId else {return}
                     vc.postId = postId
-                    vc.API = DummyAPI(query: "/post/\(postId)/comment")
-                    vc.feedAPI = DummyAPI(query: "/post/\(postId)")
+                    vc.API = DummyAPI()
                     let nc = UINavigationController()
                     nc.addChild(vc)
                     self.navigationController?.showDetailViewController(nc, sender: Any.self)
@@ -162,7 +181,8 @@ extension BrowseViewController: UICollectionViewDataSource {
                     let vc = UserDetailViewController()
                     vc.title = self.feeds[indexPath.row].owner.firstName.lowercased() + self.feeds[indexPath.row].owner.lastName.lowercased()
                     let userId = self.feeds[indexPath.row].owner.id
-                    vc.API = DummyAPI(query: "/user/\(userId)")
+                    vc.userId = userId
+                    vc.API = DummyAPI()
                     let nc = UINavigationController()
                     nc.addChild(vc)
                     self.navigationController?.showDetailViewController(nc, sender: Any.self)
@@ -205,6 +225,12 @@ extension BrowseViewController {
             UserDefaultsHelper.standard.collections = result?.data ?? []
             _self.loadingIndicator.stopAnimating()
         })
+    }
+    
+    @objc func refreshFeeds() {
+        UserDefaults.standard.removeObject(forKey: "feeds")
+        loadFeeds()
+        self.collectionView.reloadData()
     }
     
     @objc func onCellTap() {

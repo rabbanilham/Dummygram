@@ -18,10 +18,25 @@ class FeedsController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Home"
-        tableView.register(FeedCell.self, forCellReuseIdentifier: "\(FeedCell.self)")
+        tableView.register(
+            FeedCell.self,
+            forCellReuseIdentifier: "\(FeedCell.self)"
+        )
         
-        let logoutButton = UIBarButtonItem(image: UIImage(systemName: "person.fill.xmark"), style: .plain, target: self, action: #selector(logOut))
-        navigationItem.rightBarButtonItem = logoutButton
+        let refreshButton = UIBarButtonItem(
+            image: UIImage(systemName: "arrow.clockwise"),
+            style: .plain,
+            target: self,
+            action: #selector(refreshFeeds)
+        )
+        let logoutButton = UIBarButtonItem(
+            image: UIImage(systemName: "person.fill.xmark"),
+            style: .plain,
+            target: self,
+            action: #selector(logOut)
+        )
+        navigationItem.leftBarButtonItem = logoutButton
+        navigationItem.rightBarButtonItem = refreshButton
         
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 400
@@ -46,8 +61,14 @@ class FeedsController: UITableViewController {
                 
     }
     
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "\(FeedCell.self)", for: indexPath) as? FeedCell else {
+    override func tableView(
+        _ tableView: UITableView,
+        cellForRowAt indexPath: IndexPath
+    ) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(
+            withIdentifier: "\(FeedCell.self)",
+            for: indexPath
+        ) as? FeedCell else {
             return UITableViewCell()
         }
         
@@ -56,10 +77,10 @@ class FeedsController: UITableViewController {
         cell.setFeed(with: feed)
         cell.onCommentTap = {
             let vc = CommentViewController()
+            vc.postId = feed.id
             guard let postId = cell.postId else {return}
             vc.postId = postId
-            vc.API = DummyAPI(query: "/post/\(postId)/comment")
-            vc.feedAPI = DummyAPI(query: "/post/\(postId)")
+            vc.API = DummyAPI()
             let nc = UINavigationController()
             nc.addChild(vc)
             self.navigationController?.showDetailViewController(nc, sender: Any.self)
@@ -68,18 +89,27 @@ class FeedsController: UITableViewController {
             let vc = UserDetailViewController()
             vc.title = self.feeds[indexPath.row].owner.firstName.lowercased() + self.feeds[indexPath.row].owner.lastName.lowercased()
             let userId = self.feeds[indexPath.row].owner.id
-            vc.API = DummyAPI(query: "/user/\(userId)")
+            vc.userId = userId
+            vc.API = DummyAPI()
             let nc = UINavigationController()
             nc.addChild(vc)
             self.navigationController?.showDetailViewController(nc, sender: Any.self)
         }
         cell.onShareTap = {
-            FeedSharer.share(in: self, feedCaption: feed.text, feedOwner: "\(feed.owner.firstName) \(feed.owner.lastName)", feedImageUrlString: feed.image)
+            FeedSharer.share(
+                in: self,
+                feedCaption: feed.text,
+                feedOwner: "\(feed.owner.firstName) \(feed.owner.lastName)",
+                feedImageUrlString: feed.image
+            )
         }
         return cell
     }
 
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    override func tableView(
+        _ tableView: UITableView,
+        numberOfRowsInSection section: Int
+    ) -> Int {
         return feeds.count
     }
 }
@@ -111,6 +141,12 @@ extension FeedsController {
         UserDefaults.standard.removeObject(forKey: "users")
         tabBarController?.navigationController?.popViewController(animated: true)
     }
+    
+    @objc func refreshFeeds() {
+        UserDefaults.standard.removeObject(forKey: "feeds")
+        loadFeeds()
+        self.tableView.reloadData()
+    }
 }
 
 class FeedCell: UITableViewCell {
@@ -141,8 +177,14 @@ class FeedCell: UITableViewCell {
     typealias OnShareTapped = () -> Void
     var onShareTap: OnShareTapped?
     
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
+    override init(
+        style: UITableViewCell.CellStyle,
+        reuseIdentifier: String?
+    ) {
+        super.init(
+            style: style,
+            reuseIdentifier: reuseIdentifier
+        )
         
         defineLayout()
     }
@@ -172,14 +214,20 @@ class FeedCell: UITableViewCell {
         contentView.addSubview(likesCountLabel)
         contentView.addSubview(captionLabel)
         
-        let avatarTap = UITapGestureRecognizer(target: self, action: #selector(onAvatarImageTapped))
+        let avatarTap = UITapGestureRecognizer(
+            target: self,
+            action: #selector(onAvatarImageTapped)
+        )
         avatarView.translatesAutoresizingMaskIntoConstraints = false
         avatarView.clipsToBounds = true
         avatarView.layer.cornerRadius = 16
         avatarView.isUserInteractionEnabled = true
         avatarView.addGestureRecognizer(avatarTap)
 
-        let usernameTap = UITapGestureRecognizer(target: self, action: #selector(onAvatarImageTapped))
+        let usernameTap = UITapGestureRecognizer(
+            target: self,
+            action: #selector(onAvatarImageTapped)
+        )
         usernameLabel.translatesAutoresizingMaskIntoConstraints = false
         usernameLabel.font = .systemFont(ofSize: 15, weight: .semibold)
         usernameLabel.isUserInteractionEnabled = true
@@ -288,16 +336,31 @@ class FeedCell: UITableViewCell {
     
     func setFeed(with data: FeedModel) {
         
-        self.avatarView.kf.setImage(with: URL(string: data.owner.picture), options: [.cacheOriginalImage, .transition(.fade(0.25))])
+        self.avatarView.kf.setImage(
+            with: URL(string: data.owner.picture),
+            options: [
+                .cacheOriginalImage,
+                .transition(.fade(0.25))
+            ]
+        )
         self.usernameLabel.text = data.owner.firstName.lowercased() + data.owner.lastName.lowercased()
         self.photoView.kf.indicatorType = .activity
-        self.photoView.kf.setImage(with: URL(string: data.image), options: [.cacheOriginalImage, .transition(.fade(0.25))])
+        self.photoView.kf.setImage(
+            with: URL(string: data.image),
+            options: [
+                .cacheOriginalImage,
+                .transition(.fade(0.25))
+            ]
+        )
         self.likesCountLabel.text = "\(data.likes) like"
         if data.likes > 1 {
             self.likesCountLabel.text! += "s"
         }
         
-        let attrUsername = NSMutableAttributedString(string: data.owner.firstName.lowercased() + data.owner.lastName.lowercased(), attributes: [.font : UIFont.systemFont(ofSize: 15, weight: .semibold)])
+        let attrUsername = NSMutableAttributedString(
+            string: data.owner.firstName.lowercased() + data.owner.lastName.lowercased(),
+            attributes: [.font : UIFont.systemFont(ofSize: 15, weight: .semibold)]
+        )
         let attrCaption = NSAttributedString(string: " \(data.text)")
         attrUsername.append(attrCaption)
         
@@ -311,19 +374,39 @@ class FeedCell: UITableViewCell {
         
         var menus: [UIMenuElement] = []
         
-        let unfollowFeedOwner = UIAction(title: "Suggest Less", image: UIImage(systemName: "hand.thumbsdown"), identifier: nil) { _ in
+        let unfollowFeedOwner = UIAction(
+            title: "Suggest Less",
+            image: UIImage(systemName: "hand.thumbsdown"),
+            identifier: nil
+        ) { _ in
             
         }
-        let hideFeed = UIAction(title: "Suggest More", image: UIImage(systemName: "hand.thumbsup"), identifier: nil) { _ in
+        let hideFeed = UIAction(
+            title: "Suggest More",
+            image: UIImage(systemName: "hand.thumbsup"),
+            identifier: nil
+        ) { _ in
             
         }
-        let reportFeed = UIAction(title: "Save Story", image: UIImage(systemName: "square.and.arrow.down"), identifier: nil) { _ in
+        let reportFeed = UIAction(
+            title: "Save Story",
+            image: UIImage(systemName: "square.and.arrow.down"),
+            identifier: nil
+        ) { _ in
             
         }
-        let copyFeedLink = UIAction(title: "Link", image: UIImage(systemName: "link"), identifier: nil) { _ in
+        let copyFeedLink = UIAction(
+            title: "Link",
+            image: UIImage(systemName: "link"),
+            identifier: nil
+        ) { _ in
             
         }
-        let shareFeed = UIAction(title: "Share Story", image: UIImage(systemName: "square.and.arrow.up"), identifier: nil) { _ in
+        let shareFeed = UIAction(
+            title: "Share Story",
+            image: UIImage(systemName: "square.and.arrow.up"),
+            identifier: nil
+        ) { _ in
         
         }
         

@@ -11,15 +11,12 @@ import Alamofire
 struct DummyAPI {
     
     let baseURL = "https://dummyapi.io/data/v1"
-    var query: String
-    
-    init (query: String) {
-        self.query = query
-    }
     
     func getFeed(
+        feedId: String,
         completionHandler: @escaping (FeedModel?, AFError?) -> Void
     ) {
+        let query = "/post/\(feedId)"
         let headers: HTTPHeaders = [
             "app-id" : "625534f6d7e95833f9570907",
         ]
@@ -40,6 +37,9 @@ struct DummyAPI {
     func getFeeds(
         completionHandler: @escaping (DataModel<FeedModel>?, AFError?) -> Void
     ) {
+        let randomPage = Int.random(in: 1...10)
+        let randomLimit = Int.random(in: 20...40)
+        let query = "/post?page=\(randomPage)&limit=\(randomLimit)"
         let headers: HTTPHeaders = [
             "app-id" : "625534f6d7e95833f9570907",
         ]
@@ -60,6 +60,7 @@ struct DummyAPI {
     func getUsers(
         completionHandler: @escaping (DataModel<UserShortModel>?, AFError?) -> Void
     ) {
+        let query = "/user"
         let headers: HTTPHeaders = [
             "app-id" : "625534f6d7e95833f9570907",
         ]
@@ -78,9 +79,10 @@ struct DummyAPI {
     }
     
     func getUserDetail(
+        userId: String,
         completionHandler: @escaping (UserModel?, AFError?) -> Void
     ) {
-        
+        let query = "/user/\(userId)"
         let headers: HTTPHeaders = [
             "app-id" : "625534f6d7e95833f9570907",
         ]
@@ -102,7 +104,7 @@ struct DummyAPI {
         postId: String,
         completionHandler: @escaping (DataModel<CommentModel>?, AFError?) -> Void
     ) {
-        
+        let query = "/post/\(postId)/comment"
         let headers: HTTPHeaders = [
             "app-id" : "625534f6d7e95833f9570907",
         ]
@@ -121,7 +123,7 @@ struct DummyAPI {
     }
     
     func addComment(comment: String, ownerId: String, postId: String) {
-        
+        let query = "/comment/create"
         let headers: HTTPHeaders = [
             "app-id" : "625534f6d7e95833f9570907",
         ]
@@ -132,15 +134,17 @@ struct DummyAPI {
             "post" : postId
         ]
         
-        AF.request(baseURL + "/comment/create", method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
+        AF.request(baseURL + query, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
             .validate()
             .response { response in
                 print(response)
             }
     }
     
-    func deleteComment() {
-        
+    func deleteComment(
+        commentId: String
+    ) {
+        let query = "/comment/\(commentId)"
         let headers: HTTPHeaders = [
             "app-id" : "625534f6d7e95833f9570907",
         ]

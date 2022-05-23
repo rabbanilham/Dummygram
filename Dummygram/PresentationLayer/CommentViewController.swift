@@ -11,7 +11,6 @@ import Kingfisher
 final class CommentViewController: UITableViewController {
     
     var API: DummyAPI?
-    var feedAPI: DummyAPI?
     var postId: String?
     var displayedFeed: FeedModel?
     var displayedComments: [CommentModel]?
@@ -23,8 +22,14 @@ final class CommentViewController: UITableViewController {
         title = "Add comment"
         view.backgroundColor = .systemBackground
         
-        let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
-        let swipe = UISwipeGestureRecognizer(target: self, action: #selector(swipeDismissKeyboard))
+        let tap = UITapGestureRecognizer(
+            target: self,
+            action: #selector(dismissKeyboard)
+        )
+        let swipe = UISwipeGestureRecognizer(
+            target: self,
+            action: #selector(swipeDismissKeyboard)
+        )
         swipe.direction = .down
         view.addGestureRecognizer(tap)
         view.addGestureRecognizer(swipe)
@@ -45,32 +50,56 @@ final class CommentViewController: UITableViewController {
         loadingIndicator.makeConstraint(builder: builder)
         
         
-        tableView.register(FeedAndTextFieldCell.self, forCellReuseIdentifier: "\(FeedAndTextFieldCell.self)")
-        tableView.register(CommentCell.self, forCellReuseIdentifier: "\(CommentCell.self)")
+        tableView.register(
+            FeedAndTextFieldCell.self,
+            forCellReuseIdentifier: "\(FeedAndTextFieldCell.self)"
+        )
+        tableView.register(
+            CommentCell.self,
+            forCellReuseIdentifier: "\(CommentCell.self)"
+        )
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 80
         tableView.separatorStyle = .none
         tableView.beginUpdates()
         tableView.endUpdates()
         
-        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(onCancelButtonTap))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Send", style: .done, target: self, action: #selector(onSendCommentButtonTap))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .cancel,
+            target: self,
+            action: #selector(onCancelButtonTap)
+        )
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: "Send",
+            style: .done,
+            target: self,
+            action: #selector(onSendCommentButtonTap)
+        )
         
         setFeed()
         setComments()
 
     }
     
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    override func tableView(
+        _ tableView: UITableView,
+        numberOfRowsInSection section: Int
+    ) -> Int {
         return (displayedComments?.count ?? 0) + 1
     }
     
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    override func tableView(
+        _ tableView: UITableView,
+        cellForRowAt indexPath: IndexPath
+    ) -> UITableViewCell {
         let row = indexPath.row
         
         switch row {
         case 0:
-            guard let cell = tableView.dequeueReusableCell(withIdentifier: "\(FeedAndTextFieldCell.self)", for: indexPath) as? FeedAndTextFieldCell else { return UITableViewCell() }
+            guard let cell = tableView.dequeueReusableCell(
+                withIdentifier: "\(FeedAndTextFieldCell.self)",
+                for: indexPath
+            ) as? FeedAndTextFieldCell else { return UITableViewCell() }
             cell.commentDidEndEditing = { comment in
                 self.comment = comment
             }
@@ -83,7 +112,10 @@ final class CommentViewController: UITableViewController {
             return cell
             
         default:
-            guard let cell = tableView.dequeueReusableCell(withIdentifier: "\(CommentCell.self)", for: indexPath) as? CommentCell else {
+            guard let cell = tableView.dequeueReusableCell(
+                withIdentifier: "\(CommentCell.self)",
+                for: indexPath
+            ) as? CommentCell else {
                 return UITableViewCell()
             }
             cell.selectionStyle = .none
@@ -93,10 +125,11 @@ final class CommentViewController: UITableViewController {
             cell.fill(with: displayedComments[row - 1])
             
             cell.onAvatarTap = {
-                let vc = UserDetailViewController()
-                vc.title = displayedComments[indexPath.row - 1].owner.firstName.lowercased() + displayedComments[indexPath.row - 1].owner.lastName.lowercased()
                 let userId = displayedComments[indexPath.row - 1].owner.id
-                vc.API = DummyAPI(query: "/user/\(userId)")
+                let vc = UserDetailViewController()
+                vc.userId = userId
+                vc.title = displayedComments[indexPath.row - 1].owner.firstName.lowercased() + displayedComments[indexPath.row - 1].owner.lastName.lowercased()
+                vc.API = DummyAPI()
                 let nc = UINavigationController()
                 nc.addChild(vc)
                 self.navigationController?.showDetailViewController(nc, sender: Any.self)
@@ -105,7 +138,10 @@ final class CommentViewController: UITableViewController {
         }
     }
     
-    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+    override func tableView(
+        _ tableView: UITableView,
+        trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath
+    ) -> UISwipeActionsConfiguration? {
         let row = indexPath.row
         
         switch row {
@@ -113,26 +149,38 @@ final class CommentViewController: UITableViewController {
             return nil
         default:
             let row = indexPath.row - 1
-    //        guard let displayedComments = displayedComments else { return nil }
-            let comment = displayedComments?[row]
-            
-            let item = UIContextualAction(style: .destructive, title: "Delete") {  (contextualAction, view, boolValue) in
-                let ac = UIAlertController(title: "Say goodbye to this comment", message: "Are you sure want to delete this comment? This action cannot be undone.", preferredStyle: .alert)
-                let delete = UIAlertAction(title: "Delete", style: .destructive) { _ in
-                    let API = DummyAPI(query: "/comment/\(comment?.id ?? "")")
-                    API.deleteComment()
+            guard let comment = displayedComments?[row] else {
+                return nil
+            }
+
+            let item = UIContextualAction(
+                style: .destructive,
+                title: "Delete"
+            ) {  (contextualAction, view, boolValue) in
+                let ac = UIAlertController(
+                    title: "Say goodbye to this comment",
+                    message: "Are you sure want to delete this comment? This action cannot be undone.",
+                    preferredStyle: .alert
+                )
+                let delete = UIAlertAction(
+                    title: "Delete",
+                    style: .destructive
+                ) { _ in
+                    self.API!.deleteComment(commentId: comment.id)
                     self.displayedComments?.remove(at: row)
                     boolValue(true)
                     self.tableView.reloadData()
                 }
-                let cancel = UIAlertAction(title: "Cancel", style: .cancel)
+                let cancel = UIAlertAction(
+                    title: "Cancel",
+                    style: .cancel
+                ) { _ in
+                    boolValue(true)
+                }
                 ac.addAction(cancel)
                 ac.addAction(delete)
                 self.present(ac, animated: true)
                 }
-    //        item.image = UIImage(systemName: "x.circle")
-            item.title = "Delete"
-            
 
             let swipeActions = UISwipeActionsConfiguration(actions: [item])
 
@@ -146,12 +194,13 @@ extension CommentViewController {
     
     func setFeed() {
         loadingIndicator.startAnimating()
-        feedAPI?.getFeed { [weak self] result, error in
+        API?.getFeed(feedId: postId!) { [weak self] result, error in
             guard let _self = self else { return }
             _self.displayedFeed = result
             _self.tableView.reloadData()
-            _self.loadingIndicator.stopAnimating()
+//            _self.loadingIndicator.stopAnimating()
         }
+        loadingIndicator.stopAnimating()
     }
     
     func setComments() {
@@ -180,8 +229,15 @@ extension CommentViewController {
         guard comment != nil
         && comment != ""
         else {
-            let alertController = UIAlertController(title: "Comment empty", message: "Please type your comment and try again.", preferredStyle: .alert)
-            let ok = UIAlertAction(title: "OK", style: .cancel)
+            let alertController = UIAlertController(
+                title: "Comment empty",
+                message: "Please type your comment and try again.",
+                preferredStyle: .alert
+            )
+            let ok = UIAlertAction(
+                title: "OK",
+                style: .cancel
+            )
             alertController.addAction(ok)
             present(alertController, animated: true)
             return
@@ -194,8 +250,8 @@ extension CommentViewController {
             "60d0fe4f5311236168a109cf",
             "60d0fe4f5311236168a10a22"
         ]
-        guard let id = postId else { return }
-        API?.addComment(comment: comment ?? "", ownerId: ownerIds.randomElement()!, postId: id)
+//        guard let id = postId else { return }
+        API?.addComment(comment: comment ?? "", ownerId: ownerIds.randomElement()!, postId: postId!)
         navigationController?.dismiss(animated: true)
     }
     
@@ -213,8 +269,14 @@ final class FeedAndTextFieldCell: UITableViewCell {
     let captionLabel = UILabel()
     let textField = UITextField()
     
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
+    override init(
+        style: UITableViewCell.CellStyle,
+        reuseIdentifier: String?
+    ) {
+        super.init(
+            style: style,
+            reuseIdentifier: reuseIdentifier
+        )
         defineLayout()
     }
     

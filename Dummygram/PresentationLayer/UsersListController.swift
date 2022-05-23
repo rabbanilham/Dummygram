@@ -17,7 +17,10 @@ class UsersListController: UITableViewController {
         
         super.viewDidLoad()
         
-        tableView.register(UserCell.self, forCellReuseIdentifier: "\(UserCell.self)")
+        tableView.register(
+            UserCell.self,
+            forCellReuseIdentifier: "\(UserCell.self)"
+        )
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 100
         tableView.separatorStyle = .none
@@ -26,9 +29,15 @@ class UsersListController: UITableViewController {
         loadUsers()
     }
     
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    override func tableView(
+        _ tableView: UITableView,
+        cellForRowAt indexPath: IndexPath
+    ) -> UITableViewCell {
         
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "\(UserCell.self)", for: indexPath) as? UserCell else {
+        guard let cell = tableView.dequeueReusableCell(
+            withIdentifier: "\(UserCell.self)",
+            for: indexPath
+        ) as? UserCell else {
                 return UITableViewCell()
             
         }
@@ -39,16 +48,23 @@ class UsersListController: UITableViewController {
         
     }
     
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    override func tableView(
+        _ tableView: UITableView,
+        numberOfRowsInSection section: Int
+    ) -> Int {
         return displayedUsers.count
     }
     
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    override func tableView(
+        _ tableView: UITableView,
+        didSelectRowAt indexPath: IndexPath
+    ) {
         let nav = UINavigationController()
         let vc = UserDetailViewController()
         nav.addChild(vc)
         let user = displayedUsers[indexPath.row]
-        let API = DummyAPI(query: "/user/\(user.id)")
+        let API = DummyAPI()
+        vc.userId = user.id
         vc.API = API
         vc.title = user.firstName.lowercased() + user.lastName.lowercased()
         navigationController?.showDetailViewController(nav, sender: Any.self)
@@ -82,8 +98,14 @@ class UserCell: UITableViewCell {
     private let profilePictureView = UIImageView()
     private let profileFullnameLabel = UILabel()
     
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
+    override init(
+        style: UITableViewCell.CellStyle,
+        reuseIdentifier: String?
+    ) {
+        super.init(
+            style: style,
+            reuseIdentifier: reuseIdentifier
+        )
         
         defineLayout()
     }
@@ -140,7 +162,13 @@ class UserCell: UITableViewCell {
     
     func setUser(with data: UserShortModel) {
         self.profilePictureView.kf.indicatorType = .activity
-        self.profilePictureView.kf.setImage(with: URL(string: data.picture), options: [.transition(.fade(0.25)), .cacheOriginalImage])
+        self.profilePictureView.kf.setImage(
+            with: URL(string: data.picture),
+            options: [
+                .transition(.fade(0.25)),
+                .cacheOriginalImage
+            ]
+        )
         self.profileUsernameLabel.text = data.firstName.lowercased() + data.lastName.lowercased()
         self.profileFullnameLabel.text = data.firstName + " " + data.lastName
     }

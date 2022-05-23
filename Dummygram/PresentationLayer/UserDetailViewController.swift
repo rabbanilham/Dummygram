@@ -11,6 +11,7 @@ import Kingfisher
 class UserDetailViewController: UITableViewController {
     
     var API: DummyAPI?
+    var userId: String?
     var displayedUser: UserModel?
     var loadingIndicator = UIActivityIndicatorView()
     
@@ -33,19 +34,32 @@ class UserDetailViewController: UITableViewController {
         loadingIndicator.hidesWhenStopped = true
         
         tableView.separatorStyle = .none
-        tableView.register(UserDetailCell.self, forCellReuseIdentifier: "\(UserDetailCell.self)")
+        tableView.register(
+            UserDetailCell.self,
+            forCellReuseIdentifier: "\(UserDetailCell.self)"
+        )
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 300
         
-        let cancelBarButton = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(onDoneBarButtonTap))
+        let cancelBarButton = UIBarButtonItem(
+            barButtonSystemItem: .done,
+            target: self,
+            action: #selector(onDoneBarButtonTap)
+        )
         navigationItem.rightBarButtonItem = cancelBarButton
 
         loadUser()
 
     }
     
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "\(UserDetailCell.self)", for: indexPath) as? UserDetailCell else { return UITableViewCell() }
+    override func tableView(
+        _ tableView: UITableView,
+        cellForRowAt indexPath: IndexPath
+    ) -> UITableViewCell {
+        guard let cell = tableView.dequeueReusableCell(
+            withIdentifier: "\(UserDetailCell.self)",
+            for: indexPath
+        ) as? UserDetailCell else { return UITableViewCell() }
         cell.selectionStyle = .none
         cell.backgroundColor = .systemBackground
         
@@ -54,7 +68,10 @@ class UserDetailViewController: UITableViewController {
         return cell
     }
     
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    override func tableView(
+        _ tableView: UITableView,
+        numberOfRowsInSection section: Int
+    ) -> Int {
         return 1
     }
 
@@ -67,7 +84,7 @@ extension UserDetailViewController {
         
         loadingIndicator.startAnimating()
         
-        API?.getUserDetail(completionHandler: {[weak self] result, error in
+        API?.getUserDetail(userId: userId!, completionHandler: {[weak self] result, error in
             guard let self = self else {return}
             self.loadingIndicator.stopAnimating()
             self.displayedUser = result
@@ -126,13 +143,9 @@ final class UserDetailCell: UITableViewCell {
         profilePictureView.translatesAutoresizingMaskIntoConstraints = false
         profilePictureView.clipsToBounds = true
         profilePictureView.layer.cornerRadius = 45
-        
-    //        genderView.translatesAutoresizingMaskIntoConstraints = false
-        
+                
         emailView.translatesAutoresizingMaskIntoConstraints = false
-        
-    //        dateOfBirthView.translatesAutoresizingMaskIntoConstraints = false
-        
+                
         phoneView.translatesAutoresizingMaskIntoConstraints = false
         
         locationView.translatesAutoresizingMaskIntoConstraints = false
@@ -140,9 +153,7 @@ final class UserDetailCell: UITableViewCell {
         locationView.textAlignment = .left
         
         registeredDateView.translatesAutoresizingMaskIntoConstraints = false
-        
-    //        updatedDateView.translatesAutoresizingMaskIntoConstraints = false
-        
+                
         NSLayoutConstraint.activate([
 
             profilePictureView.widthAnchor.constraint(equalToConstant: 90),
@@ -172,7 +183,13 @@ final class UserDetailCell: UITableViewCell {
     
     func setUser(with data: UserModel) {
         
-        self.profilePictureView.kf.setImage(with: URL(string: data.picture), options: [.cacheOriginalImage, .transition(.fade(1))])
+        self.profilePictureView.kf.setImage(
+            with: URL(string: data.picture),
+            options: [
+                .cacheOriginalImage,
+                .transition(.fade(1))
+            ]
+        )
         self.profileUsernameView.text = data.firstName + " " + data.lastName
         self.genderView.text = data.gender
         self.emailView.text = "✉️ " + data.email

@@ -16,7 +16,7 @@ final class TabBarController: UITabBarController {
         tabBar.isTranslucent = true
 
         let feedsController = FeedsController()
-        let feedsAPI = DummyAPI(query: "/post")
+        let feedsAPI = DummyAPI()
         feedsController.API = feedsAPI
         feedsController.tabBarItem = UITabBarItem(
             title: "Home",
@@ -25,7 +25,7 @@ final class TabBarController: UITabBarController {
         )
         
         let browseViewController = BrowseViewController()
-        let browseAPI = DummyAPI(query: "/post?page=1&limit=40")
+        let browseAPI = DummyAPI()
         browseViewController.API = browseAPI
         browseViewController.tabBarItem = UITabBarItem(
             title: "Browse",
@@ -34,7 +34,7 @@ final class TabBarController: UITabBarController {
         )
         
         let usersListController = UsersListController()
-        let usersAPI = DummyAPI(query: "/user")
+        let usersAPI = DummyAPI()
         usersListController.API = usersAPI
         usersListController.tabBarItem = UITabBarItem(
             title: "DummyAPI.io",
