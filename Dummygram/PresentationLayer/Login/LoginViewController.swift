@@ -97,7 +97,6 @@ class LoginViewController: UITableViewController {
         button.translatesAutoresizingMaskIntoConstraints = false
 
         button.setTitle("Log In", for: .normal)
-        button.backgroundColor = .systemBlue
         button.layer.cornerRadius = 10
         button.addTarget(Any.self, action: #selector(handleNoInputTextField), for: .touchUpInside)
         return button
@@ -106,8 +105,6 @@ class LoginViewController: UITableViewController {
     private let appleSignInButton: UIButton = {
         let button = UIButton()
         button.translatesAutoresizingMaskIntoConstraints = false
-
-        button.backgroundColor = .label
         button.layer.cornerRadius = 10
         button.setImage(UIImage(systemName: "applelogo"), for: .normal)
         button.tintColor = .systemBackground
@@ -140,6 +137,10 @@ class LoginViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
         cell.selectionStyle = .none
+        
+        loginButton.configuration = .filled()
+        appleSignInButton.configuration = .filled()
+        appleSignInButton.tintColor = .label
         
         cell.contentView.addSubview(loginImage)
         cell.contentView.addSubview(emailTextField)

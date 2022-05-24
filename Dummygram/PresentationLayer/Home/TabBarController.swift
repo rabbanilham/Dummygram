@@ -24,7 +24,7 @@ final class TabBarController: UITabBarController {
             selectedImage: UIImage(systemName: "house.fill")
         )
         
-        let browseViewController = BrowseViewController()
+        let browseViewController = CollectionViewController()
         let browseAPI = DummyAPI()
         browseViewController.API = browseAPI
         browseViewController.tabBarItem = UITabBarItem(

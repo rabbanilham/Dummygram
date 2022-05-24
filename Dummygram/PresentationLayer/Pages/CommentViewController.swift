@@ -7,6 +7,7 @@
 
 import UIKit
 import Kingfisher
+import IQKeyboardManagerSwift
 
 final class CommentViewController: UITableViewController {
     
@@ -21,6 +22,8 @@ final class CommentViewController: UITableViewController {
         super.viewDidLoad()
         title = "Add comment"
         view.backgroundColor = .systemBackground
+        
+        IQKeyboardManager.shared.enable = true
         
         let tap = UITapGestureRecognizer(
             target: self,
@@ -101,6 +104,7 @@ final class CommentViewController: UITableViewController {
                 for: indexPath
             ) as? FeedAndTextFieldCell else { return UITableViewCell() }
             cell.commentDidEndEditing = { comment in
+//                self.tableView.scrollToRow(at: indexPath, at: .top, animated: true)
                 self.comment = comment
             }
             cell.selectionStyle = .none
@@ -140,7 +144,7 @@ final class CommentViewController: UITableViewController {
     
     override func tableView(
         _ tableView: UITableView,
-        trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath
+        leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath
     ) -> UISwipeActionsConfiguration? {
         let row = indexPath.row
         
@@ -149,9 +153,10 @@ final class CommentViewController: UITableViewController {
             return nil
         default:
             let row = indexPath.row - 1
-            guard let comment = displayedComments?[row] else {
-                return nil
-            }
+            guard let displayedComments = displayedComments else { return nil }
+            guard let API = API else { return nil }
+
+            let comment = displayedComments[row]
 
             let item = UIContextualAction(
                 style: .destructive,
@@ -166,10 +171,14 @@ final class CommentViewController: UITableViewController {
                     title: "Delete",
                     style: .destructive
                 ) { _ in
-                    self.API!.deleteComment(commentId: comment.id)
+                    API.deleteComment(commentId: comment.id)
                     self.displayedComments?.remove(at: row)
+                    self.tableView.deleteRows(
+                        at: [indexPath],
+                        with: .automatic
+                    )
                     boolValue(true)
-                    self.tableView.reloadData()
+//                    self.tableView.reloadData()
                 }
                 let cancel = UIAlertAction(
                     title: "Cancel",
@@ -198,14 +207,15 @@ extension CommentViewController {
             guard let _self = self else { return }
             _self.displayedFeed = result
             _self.tableView.reloadData()
-//            _self.loadingIndicator.stopAnimating()
         }
         loadingIndicator.stopAnimating()
     }
     
     func setComments() {
         loadingIndicator.startAnimating()
-        API?.getFeedComments(postId: postId!, completionHandler: { [weak self] result, error in
+        API?.getFeedComments(
+            postId: postId!,
+            completionHandler: { [weak self] result, error in
             guard let _self = self else { return }
             _self.displayedComments = result?.data
             _self.tableView.reloadData()
@@ -301,14 +311,19 @@ final class FeedAndTextFieldCell: UITableViewCell {
         textField.borderStyle = .roundedRect
         textField.layer.cornerRadius = 8
         textField.placeholder = "Add your comment..."
-        textField.backgroundColor = .secondarySystemBackground
-        textField.addTarget(Any.self, action: #selector(handleCommentChange), for: .editingChanged)
+        textField.backgroundColor = .systemBackground
+        textField.clearButtonMode = .whileEditing
+        textField.addTarget(
+            Any.self,
+            action: #selector(handleCommentChange),
+            for: .editingChanged
+        )
         
         NSLayoutConstraint.activate([
         
             photoView.topAnchor.constraint(equalTo: contentView.topAnchor),
             photoView.widthAnchor.constraint(equalTo: contentView.widthAnchor),
-            photoView.heightAnchor.constraint(equalTo: photoView.widthAnchor, multiplier: 0.66),
+            photoView.heightAnchor.constraint(equalTo: photoView.widthAnchor, multiplier: 1),
             photoView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             
             captionLabel.topAnchor.constraint(equalTo: photoView.bottomAnchor, constant: 15),

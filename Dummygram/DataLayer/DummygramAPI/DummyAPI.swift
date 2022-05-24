@@ -35,11 +35,11 @@ struct DummyAPI {
     }
     
     func getFeeds(
+        page: Int,
+        limit: Int,
         completionHandler: @escaping (DataModel<FeedModel>?, AFError?) -> Void
     ) {
-        let randomPage = Int.random(in: 1...10)
-        let randomLimit = Int.random(in: 20...40)
-        let query = "/post?page=\(randomPage)&limit=\(randomLimit)"
+        let query = "/post?page=\(page)&limit=\(limit)"
         let headers: HTTPHeaders = [
             "app-id" : "625534f6d7e95833f9570907",
         ]
@@ -122,7 +122,38 @@ struct DummyAPI {
         }
     }
     
-    func addComment(comment: String, ownerId: String, postId: String) {
+    func addFeed(
+        text: String,
+        image: String,
+        likes: Int?,
+        tags: [String]?,
+        owner: String
+    ) {
+        let query = "/post/create"
+        let headers: HTTPHeaders = [
+            "app-id" : "625534f6d7e95833f9570907",
+        ]
+        
+        let parameters: Parameters = [
+            "text" : text,
+            "image" : image,
+            "likes" : likes ?? Int.random(in: 1...1000),
+            "tags" : tags ?? [],
+            "owner" : owner
+        ]
+        
+        AF.request(baseURL + query, method: .post, parameters: parameters, encoding: JSONEncoding.default, headers: headers)
+            .validate()
+            .response { response in
+                print(response)
+            }
+    }
+    
+    func addComment(
+        comment: String,
+        ownerId: String,
+        postId: String
+    ) {
         let query = "/comment/create"
         let headers: HTTPHeaders = [
             "app-id" : "625534f6d7e95833f9570907",

@@ -9,9 +9,10 @@ import UIKit
 import Kingfisher
 
 class FeedsController: UITableViewController {
-
     var API: DummyAPI?
     var feeds: [FeedModel] = []
+    var currentPage: Int?
+    var currentLimit: Int?
     var loadingIndicator = UIActivityIndicatorView()
     var isLiked: [Bool] = []
     
@@ -23,42 +24,50 @@ class FeedsController: UITableViewController {
             forCellReuseIdentifier: "\(FeedCell.self)"
         )
         
+        let createPostButton = UIBarButtonItem(
+            image: UIImage(systemName: "plus.app"),
+            style: .plain,
+            target: self,
+            action: #selector(onCreatePostButtonTap)
+        )
+        createPostButton.tintColor = .label
         let refreshButton = UIBarButtonItem(
             image: UIImage(systemName: "arrow.clockwise"),
             style: .plain,
             target: self,
             action: #selector(refreshFeeds)
         )
+        refreshButton.tintColor = .label
         let logoutButton = UIBarButtonItem(
             image: UIImage(systemName: "person.fill.xmark"),
             style: .plain,
             target: self,
             action: #selector(logOut)
         )
+        logoutButton.tintColor = .label
         navigationItem.leftBarButtonItem = logoutButton
-        navigationItem.rightBarButtonItem = refreshButton
+        navigationItem.rightBarButtonItems = [createPostButton, refreshButton]
         
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 400
         tableView.separatorStyle = .none
+        tableView.beginUpdates()
+        tableView.endUpdates()
         
         view.addSubview(loadingIndicator)
         
         let builder: (UIView) -> [NSLayoutConstraint] = { view in
-
             let constraints: [NSLayoutConstraint] = [
                 view.centerXAnchor.constraint(equalTo: super.view.centerXAnchor),
                 view.centerYAnchor.constraint(equalTo: super.view.centerYAnchor)
             ]
             return constraints
-            
         }
         
         loadingIndicator.makeConstraint(builder: builder)
         loadingIndicator.hidesWhenStopped = true
         
         loadFeeds()
-                
     }
     
     override func tableView(
@@ -103,6 +112,47 @@ class FeedsController: UITableViewController {
                 feedImageUrlString: feed.image
             )
         }
+        cell.onCaptionTap = { [self] isFullCaptionExpanded in
+            API?.getFeed(
+                feedId: feed.id,
+                completionHandler: { result, error in
+                    cell.contentView.bringSubviewToFront(cell.loadingView)
+                    if isFullCaptionExpanded {
+                        DispatchQueue.main.async {
+                            guard let result = result else { return }
+                            let attrUsername = NSMutableAttributedString(
+                                string: result.owner.firstName.lowercased() + result.owner.lastName.lowercased(),
+                                attributes: [.font : UIFont.systemFont(ofSize: 15, weight: .semibold)]
+                            )
+                            let attrCaption = NSAttributedString(
+                                string: " \(result.text)",
+                                attributes: [.font : UIFont.systemFont(ofSize: 15)]
+                            )
+                            attrUsername.append(attrCaption)
+                            cell.captionLabel.attributedText = nil
+                            cell.captionLabel.attributedText = attrUsername
+                            cell.loadingIndicator.stopAnimating()
+                            cell.loadingIndicator.hidesWhenStopped = true
+                            cell.contentView.sendSubviewToBack(cell.loadingView)
+                            cell.loadingView.alpha = 0
+                            tableView.beginUpdates()
+                            tableView.endUpdates()
+                            tableView.layoutIfNeeded()
+                        }
+                    } else {
+                        DispatchQueue.main.async {
+                            cell.setFeed(with: feed)
+                            cell.loadingIndicator.stopAnimating()
+                            cell.loadingIndicator.hidesWhenStopped = true
+                            cell.contentView.sendSubviewToBack(cell.loadingView)
+                            cell.loadingView.alpha = 0
+                            tableView.beginUpdates()
+                            tableView.endUpdates()
+                            tableView.layoutIfNeeded()
+                        }
+                    }
+                })
+        }
         return cell
     }
 
@@ -117,6 +167,10 @@ class FeedsController: UITableViewController {
 extension FeedsController {
     
     func loadFeeds() {
+        let randomPage = Int.random(in: 1...10)
+        let randomLimit = Int.random(in: 20...40)
+        currentPage = randomPage
+        currentLimit = randomLimit
         loadingIndicator.startAnimating()
         let localFeeds = UserDefaultsHelper.standard.feeds
         if !localFeeds.isEmpty {
@@ -125,7 +179,27 @@ extension FeedsController {
             self.loadingIndicator.stopAnimating()
             return
         }
-        API?.getFeeds(completionHandler: { [weak self] result, error in
+        API?.getFeeds(
+            page: randomPage,
+            limit: randomLimit,
+            completionHandler: { [weak self] result, error in
+            guard let _self = self else {return}
+            _self.feeds = result?.data ?? []
+            _self.tableView.reloadData()
+            UserDefaultsHelper.standard.feeds = result?.data ?? []
+            _self.loadingIndicator.stopAnimating()
+        })
+    }
+    
+    func softReload() {
+        loadingIndicator.startAnimating()
+        guard let page = currentPage,
+              let limit = currentLimit
+        else { return }
+        API?.getFeeds(
+            page: page,
+            limit: limit,
+            completionHandler: { [weak self] result, error in
             guard let _self = self else {return}
             _self.feeds = result?.data ?? []
             _self.tableView.reloadData()
@@ -147,6 +221,13 @@ extension FeedsController {
         loadFeeds()
         self.tableView.reloadData()
     }
+    
+    @objc func onCreatePostButtonTap() {
+        let nc = UINavigationController()
+        let vc = CreatePostViewController()
+        nc.addChild(vc)
+        self.navigationController?.showDetailViewController(nc, sender: Any.self)
+    }
 }
 
 class FeedCell: UITableViewCell {
@@ -162,7 +243,11 @@ class FeedCell: UITableViewCell {
     let likesCountLabel = UILabel()
     let captionLabel = UILabel()
     
+    let loadingView = UIView()
+    let loadingIndicator = UIActivityIndicatorView()
+    
     var postId: String?
+    var isCaptionExpanded: Bool = false
     
     private var isLiked: Bool = false
     typealias OnLikeTapped = (Bool) -> Void
@@ -176,6 +261,9 @@ class FeedCell: UITableViewCell {
     
     typealias OnShareTapped = () -> Void
     var onShareTap: OnShareTapped?
+    
+    typealias OnCaptionTapped = (Bool) -> Void
+    var onCaptionTap: OnCaptionTapped?
     
     override init(
         style: UITableViewCell.CellStyle,
@@ -199,10 +287,13 @@ class FeedCell: UITableViewCell {
         usernameLabel.text = nil
         likesCountLabel.text = nil
         captionLabel.text = nil
+        isCaptionExpanded = false
     }
     
     func defineLayout() {
         
+//        contentView.addSubview(loadingView)
+        loadingView.addSubview(loadingIndicator)
         contentView.addSubview(avatarView)
         contentView.addSubview(usernameLabel)
         contentView.addSubview(moreButton)
@@ -213,6 +304,7 @@ class FeedCell: UITableViewCell {
         contentView.addSubview(saveButton)
         contentView.addSubview(likesCountLabel)
         contentView.addSubview(captionLabel)
+        contentView.backgroundColor = .systemBackground
         
         let avatarTap = UITapGestureRecognizer(
             target: self,
@@ -234,7 +326,10 @@ class FeedCell: UITableViewCell {
         usernameLabel.addGestureRecognizer(usernameTap)
         
         moreButton.translatesAutoresizingMaskIntoConstraints = false
-        moreButton.setImage(UIImage(systemName: "ellipsis")?.withRenderingMode(.automatic), for: .normal)
+        moreButton.setImage(
+            UIImage(systemName: "ellipsis")?.withRenderingMode(.automatic),
+            for: .normal
+        )
         moreButton.tintColor = .label
         moreButton.menu = UIMenu(title: "", children: menuElements())
 
@@ -243,7 +338,10 @@ class FeedCell: UITableViewCell {
         photoView.contentMode = .scaleAspectFill
         
         likeButton.translatesAutoresizingMaskIntoConstraints = false
-        likeButton.setImage(UIImage(systemName: "heart")?.withRenderingMode(.automatic), for: .normal)
+        likeButton.setImage(
+            UIImage(systemName: "heart")?.withRenderingMode(.automatic),
+            for: .normal
+        )
         likeButton.addTarget(Any.self, action: #selector(onLikeButtonTapped), for: .touchUpInside)
         likeButton.tintColor = .label
         likeButton.contentMode = .scaleAspectFill
@@ -251,7 +349,10 @@ class FeedCell: UITableViewCell {
         likeButton.imageView?.widthAnchor.constraint(equalToConstant: 25).isActive = true
         
         commentButton.translatesAutoresizingMaskIntoConstraints = false
-        commentButton.setImage(UIImage(systemName: "bubble.left")?.withRenderingMode(.automatic), for: .normal)
+        commentButton.setImage(
+            UIImage(systemName: "bubble.left")?.withRenderingMode(.automatic),
+            for: .normal
+        )
         commentButton.tintColor = .label
         commentButton.contentMode = .scaleAspectFill
         commentButton.imageView?.widthAnchor.constraint(equalToConstant: 25).isActive = true
@@ -259,7 +360,10 @@ class FeedCell: UITableViewCell {
         commentButton.addTarget(Any.self, action: #selector(onCommentButtonTapped), for: .touchUpInside)
 
         shareButton.translatesAutoresizingMaskIntoConstraints = false
-        shareButton.setImage(UIImage(systemName: "paperplane")?.withRenderingMode(.automatic), for: .normal)
+        shareButton.setImage(
+            UIImage(systemName: "paperplane")?.withRenderingMode(.automatic),
+            for: .normal
+        )
         shareButton.tintColor = .label
         shareButton.contentMode = .scaleAspectFill
         shareButton.imageView?.widthAnchor.constraint(equalToConstant: 25).isActive = true
@@ -267,7 +371,10 @@ class FeedCell: UITableViewCell {
         shareButton.addTarget(Any.self, action: #selector(onShareButtonTapped), for: .touchUpInside)
         
         saveButton.translatesAutoresizingMaskIntoConstraints = false
-        saveButton.setImage(UIImage(systemName: "flag")?.withRenderingMode(.automatic), for: .normal)
+        saveButton.setImage(
+            UIImage(systemName: "flag")?.withRenderingMode(.automatic),
+            for: .normal
+        )
         saveButton.tintColor = .label
         saveButton.contentMode = .scaleAspectFill
         saveButton.imageView?.widthAnchor.constraint(equalToConstant: 25).isActive = true
@@ -276,10 +383,21 @@ class FeedCell: UITableViewCell {
         likesCountLabel.translatesAutoresizingMaskIntoConstraints = false
         likesCountLabel.font = UIFont.systemFont(ofSize: 15, weight: .semibold)
         
+        let captionTap = UITapGestureRecognizer(
+            target: self,
+            action: #selector(onCaptionLabelTapped)
+        )
         captionLabel.translatesAutoresizingMaskIntoConstraints = false
-        captionLabel.font = .systemFont(ofSize: 15, weight: .regular)
+        captionLabel.isUserInteractionEnabled = true
         captionLabel.numberOfLines = 0
-        captionLabel.textAlignment = .left
+        captionLabel.addGestureRecognizer(captionTap)
+        
+        loadingView.translatesAutoresizingMaskIntoConstraints = false
+        loadingView.backgroundColor = .label.withAlphaComponent(0.7)
+        
+        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
+        loadingIndicator.style = .medium
+        loadingIndicator.color = .systemBackground
         
         NSLayoutConstraint.activate([
         
@@ -322,11 +440,10 @@ class FeedCell: UITableViewCell {
             likesCountLabel.leadingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.leadingAnchor),
 
             captionLabel.topAnchor.constraint(equalTo: likesCountLabel.bottomAnchor, constant: 10),
-            captionLabel.widthAnchor.constraint(equalTo: contentView.layoutMarginsGuide.widthAnchor),
+//            captionLabel.widthAnchor.constraint(equalTo: contentView.layoutMarginsGuide.widthAnchor),
             captionLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20),
             captionLabel.leadingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.leadingAnchor),
             captionLabel.trailingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.trailingAnchor),
-            
             
             contentView.heightAnchor.constraint(greaterThanOrEqualToConstant: UITableView.automaticDimension)
         
@@ -361,9 +478,22 @@ class FeedCell: UITableViewCell {
             string: data.owner.firstName.lowercased() + data.owner.lastName.lowercased(),
             attributes: [.font : UIFont.systemFont(ofSize: 15, weight: .semibold)]
         )
-        let attrCaption = NSAttributedString(string: " \(data.text)")
+        let attrCaption = NSAttributedString(
+            string: " \(data.text)",
+            attributes: [.font : UIFont.systemFont(ofSize: 15)]
+        )
+        let attrMore = NSAttributedString(
+            string: " show more",
+            attributes: [
+                .foregroundColor : UIColor.secondaryLabel,
+                .font : UIFont.systemFont(ofSize: 15)
+            ]
+        )
         attrUsername.append(attrCaption)
-        
+        let last3 = data.text.suffix(3)
+        if last3 == "..." {
+            attrUsername.append(attrMore)
+        }
         self.captionLabel.attributedText = attrUsername
         
         self.postId = data.id
@@ -454,6 +584,27 @@ extension FeedCell {
     
     @objc private func onShareButtonTapped() {
         onShareTap?()
+    }
+    
+    @objc private func onCaptionLabelTapped() {
+        isCaptionExpanded.toggle()
+        onCaptionTap?(isCaptionExpanded)
+        contentView.addSubview(loadingView)
+        loadingView.alpha = 0.5
+        if isCaptionExpanded {
+            
+        }
+        
+        NSLayoutConstraint.activate([
+            loadingView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            loadingView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            loadingView.heightAnchor.constraint(equalTo: contentView.heightAnchor),
+            loadingView.widthAnchor.constraint(equalTo: contentView.widthAnchor),
+            
+            loadingIndicator.centerXAnchor.constraint(equalTo: loadingView.centerXAnchor),
+            loadingIndicator.centerYAnchor.constraint(equalTo: loadingView.centerYAnchor),
+        ])
+        loadingIndicator.startAnimating()
     }
     
 }

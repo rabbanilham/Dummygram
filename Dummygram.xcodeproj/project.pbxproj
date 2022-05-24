@@ -27,8 +27,10 @@
 		3831F2BF282ECFF50070065E /* UsersListController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3831F2BE282ECFF50070065E /* UsersListController.swift */; };
 		3831F2C1282ED16E0070065E /* UserDetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3831F2C0282ED16E0070065E /* UserDetailViewController.swift */; };
 		38385CCB28365053008921AC /* CreatePostViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38385CCA28365053008921AC /* CreatePostViewController.swift */; };
+		383DBBFA283C03110063540F /* YPImagePicker in Frameworks */ = {isa = PBXBuildFile; productRef = 383DBBF9283C03110063540F /* YPImagePicker */; };
+		383DBBFD283C03B50063540F /* IQKeyboardManagerSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 383DBBFC283C03B50063540F /* IQKeyboardManagerSwift */; };
 		386C1BBA283902AD00921B0E /* FeedSharer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 386C1BB9283902AD00921B0E /* FeedSharer.swift */; };
-		3881B5C9283376DE00CBC31F /* BrowseViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3881B5C8283376DE00CBC31F /* BrowseViewController.swift */; };
+		3881B5C9283376DE00CBC31F /* CollectionViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3881B5C8283376DE00CBC31F /* CollectionViewController.swift */; };
 		3881B5CB2833772600CBC31F /* UIView+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3881B5CA2833772600CBC31F /* UIView+Extension.swift */; };
 		3881B5CD2833775300CBC31F /* UICollectionView+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3881B5CC2833775300CBC31F /* UICollectionView+Extension.swift */; };
 		3881B5D12833790100CBC31F /* UIViewController+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3881B5D02833790100CBC31F /* UIViewController+Extension.swift */; };
@@ -61,7 +63,7 @@
 		3831F2C0282ED16E0070065E /* UserDetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDetailViewController.swift; sourceTree = "<group>"; };
 		38385CCA28365053008921AC /* CreatePostViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatePostViewController.swift; sourceTree = "<group>"; };
 		386C1BB9283902AD00921B0E /* FeedSharer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedSharer.swift; sourceTree = "<group>"; };
-		3881B5C8283376DE00CBC31F /* BrowseViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseViewController.swift; sourceTree = "<group>"; };
+		3881B5C8283376DE00CBC31F /* CollectionViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionViewController.swift; sourceTree = "<group>"; };
 		3881B5CA2833772600CBC31F /* UIView+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIView+Extension.swift"; sourceTree = "<group>"; };
 		3881B5CC2833775300CBC31F /* UICollectionView+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UICollectionView+Extension.swift"; sourceTree = "<group>"; };
 		3881B5D02833790100CBC31F /* UIViewController+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIViewController+Extension.swift"; sourceTree = "<group>"; };
@@ -76,6 +78,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				38DCF15428328E0900BC29C3 /* Kingfisher in Frameworks */,
+				383DBBFD283C03B50063540F /* IQKeyboardManagerSwift in Frameworks */,
+				383DBBFA283C03110063540F /* YPImagePicker in Frameworks */,
 				3831F28B282EBD420070065E /* Alamofire in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -115,12 +119,7 @@
 		3831F294282EC3DD0070065E /* DummygramAPI */ = {
 			isa = PBXGroup;
 			children = (
-				3831F2A2282EC4120070065E /* DataModel.swift */,
 				3831F29F282EC4120070065E /* DummyAPI.swift */,
-				3831F2A3282EC4120070065E /* FeederModel.swift */,
-				3831F2A0282EC4120070065E /* FeedModel.swift */,
-				3831F2A1282EC4120070065E /* UserModel.swift */,
-				38F49606283705EC0066A8AF /* CommentModel.swift */,
 			);
 			path = DummygramAPI;
 			sourceTree = "<group>";
@@ -139,6 +138,71 @@
 			path = Extensions;
 			sourceTree = "<group>";
 		};
+		383DBBFE283CA47E0063540F /* Feeds */ = {
+			isa = PBXGroup;
+			children = (
+				3831F2B4282ECB7A0070065E /* FeedsController.swift */,
+			);
+			path = Feeds;
+			sourceTree = "<group>";
+		};
+		383DBBFF283CA4C00063540F /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				3881B5D72833AB7C00CBC31F /* TabBarController.swift */,
+				383DBC01283CA4F50063540F /* UsersList */,
+				383DBC00283CA4D40063540F /* Collection */,
+				383DBBFE283CA47E0063540F /* Feeds */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		383DBC00283CA4D40063540F /* Collection */ = {
+			isa = PBXGroup;
+			children = (
+				3881B5C8283376DE00CBC31F /* CollectionViewController.swift */,
+			);
+			path = Collection;
+			sourceTree = "<group>";
+		};
+		383DBC01283CA4F50063540F /* UsersList */ = {
+			isa = PBXGroup;
+			children = (
+				3831F2BE282ECFF50070065E /* UsersListController.swift */,
+			);
+			path = UsersList;
+			sourceTree = "<group>";
+		};
+		383DBC02283CA5030063540F /* Login */ = {
+			isa = PBXGroup;
+			children = (
+				3831F279282EBD2A0070065E /* LoginViewController.swift */,
+			);
+			path = Login;
+			sourceTree = "<group>";
+		};
+		383DBC03283CA50E0063540F /* Pages */ = {
+			isa = PBXGroup;
+			children = (
+				380B39A52834087C00BABB57 /* CommentViewController.swift */,
+				38385CCA28365053008921AC /* CreatePostViewController.swift */,
+				3831F2C0282ED16E0070065E /* UserDetailViewController.swift */,
+			);
+			path = Pages;
+			sourceTree = "<group>";
+		};
+		383DBC04283CA6E30063540F /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				3831F2A2282EC4120070065E /* DataModel.swift */,
+				3831F2A3282EC4120070065E /* FeederModel.swift */,
+				3831F2A0282EC4120070065E /* FeedModel.swift */,
+				3831F2A1282EC4120070065E /* UserModel.swift */,
+				38F49606283705EC0066A8AF /* CommentModel.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		3881B5D22833AB1900CBC31F /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -151,14 +215,9 @@
 		3881B5D32833AB2C00CBC31F /* PresentationLayer */ = {
 			isa = PBXGroup;
 			children = (
-				3831F2B4282ECB7A0070065E /* FeedsController.swift */,
-				3831F279282EBD2A0070065E /* LoginViewController.swift */,
-				3831F2BE282ECFF50070065E /* UsersListController.swift */,
-				3831F2C0282ED16E0070065E /* UserDetailViewController.swift */,
-				3881B5C8283376DE00CBC31F /* BrowseViewController.swift */,
-				3881B5D72833AB7C00CBC31F /* TabBarController.swift */,
-				380B39A52834087C00BABB57 /* CommentViewController.swift */,
-				38385CCA28365053008921AC /* CreatePostViewController.swift */,
+				383DBC03283CA50E0063540F /* Pages */,
+				383DBC02283CA5030063540F /* Login */,
+				383DBBFF283CA4C00063540F /* Home */,
 			);
 			path = PresentationLayer;
 			sourceTree = "<group>";
@@ -185,6 +244,7 @@
 		3881B5DE2833AC1600CBC31F /* DataLayer */ = {
 			isa = PBXGroup;
 			children = (
+				383DBC04283CA6E30063540F /* Models */,
 				3831F294282EC3DD0070065E /* DummygramAPI */,
 			);
 			path = DataLayer;
@@ -209,6 +269,8 @@
 			packageProductDependencies = (
 				3831F28A282EBD420070065E /* Alamofire */,
 				38DCF15328328E0900BC29C3 /* Kingfisher */,
+				383DBBF9283C03110063540F /* YPImagePicker */,
+				383DBBFC283C03B50063540F /* IQKeyboardManagerSwift */,
 			);
 			productName = Dummygram;
 			productReference = 3831F272282EBD2A0070065E /* Dummygram.app */;
@@ -241,6 +303,8 @@
 			packageReferences = (
 				3831F289282EBD420070065E /* XCRemoteSwiftPackageReference "Alamofire" */,
 				38DCF15228328E0900BC29C3 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+				383DBBF8283C03110063540F /* XCRemoteSwiftPackageReference "YPImagePicker" */,
+				383DBBFB283C03B50063540F /* XCRemoteSwiftPackageReference "IQKeyboardManager" */,
 			);
 			productRefGroup = 3831F273282EBD2A0070065E /* Products */;
 			projectDirPath = "";
@@ -274,7 +338,7 @@
 				3831F2A8282EC4120070065E /* FeederModel.swift in Sources */,
 				3831F27A282EBD2A0070065E /* LoginViewController.swift in Sources */,
 				3831F2C1282ED16E0070065E /* UserDetailViewController.swift in Sources */,
-				3881B5C9283376DE00CBC31F /* BrowseViewController.swift in Sources */,
+				3881B5C9283376DE00CBC31F /* CollectionViewController.swift in Sources */,
 				3831F2BF282ECFF50070065E /* UsersListController.swift in Sources */,
 				3831F2AC282EC4B30070065E /* Encodable+Extension.swift in Sources */,
 				38385CCB28365053008921AC /* CreatePostViewController.swift in Sources */,
@@ -510,6 +574,22 @@
 				minimumVersion = 5.0.0;
 			};
 		};
+		383DBBF8283C03110063540F /* XCRemoteSwiftPackageReference "YPImagePicker" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Yummypets/YPImagePicker.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+		383DBBFB283C03B50063540F /* XCRemoteSwiftPackageReference "IQKeyboardManager" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/hackiftekhar/IQKeyboardManager.git";
+			requirement = {
+				kind = exactVersion;
+				version = 6.5.0;
+			};
+		};
 		38DCF15228328E0900BC29C3 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
@@ -525,6 +605,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 3831F289282EBD420070065E /* XCRemoteSwiftPackageReference "Alamofire" */;
 			productName = Alamofire;
+		};
+		383DBBF9283C03110063540F /* YPImagePicker */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 383DBBF8283C03110063540F /* XCRemoteSwiftPackageReference "YPImagePicker" */;
+			productName = YPImagePicker;
+		};
+		383DBBFC283C03B50063540F /* IQKeyboardManagerSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 383DBBFB283C03B50063540F /* XCRemoteSwiftPackageReference "IQKeyboardManager" */;
+			productName = IQKeyboardManagerSwift;
 		};
 		38DCF15328328E0900BC29C3 /* Kingfisher */ = {
 			isa = XCSwiftPackageProductDependency;

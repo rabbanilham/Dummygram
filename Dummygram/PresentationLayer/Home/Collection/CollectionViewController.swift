@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 import Kingfisher
 
-final class BrowseViewController: UIViewController {
+final class CollectionViewController: UIViewController {
     
     lazy var collectionView: UICollectionView = makeCollectionView()
     
@@ -132,7 +132,7 @@ final class BrowseViewController: UIViewController {
         let collectionLayout: UICollectionViewLayout = makeCollectionLayout()
         let view = UICollectionView(frame: screenFrame, collectionViewLayout: collectionLayout)
         view.registerCell(UICollectionViewCell.self)
-        view.registerCell(BrowseViewCell.self)
+        view.registerCell(CollectionViewCell.self)
         view.backgroundColor = .white
         
         view.dataSource = self
@@ -141,7 +141,7 @@ final class BrowseViewController: UIViewController {
     
 }
 
-extension BrowseViewController: UICollectionViewDataSource {
+extension CollectionViewController: UICollectionViewDataSource {
     
     func numberOfSections(in collectionView: UICollectionView) -> Int {
         return 1
@@ -162,7 +162,7 @@ extension BrowseViewController: UICollectionViewDataSource {
         switch section {
         case 0:
             let feed = feeds[indexPath.row]
-            return dequeueCell(BrowseViewCell.self, in: collectionView, at: indexPath) { cell in
+            return dequeueCell(CollectionViewCell.self, in: collectionView, at: indexPath) { cell in
                 cell.setFeed(with: feed)
                 cell.layer.cornerRadius = 10
                 cell.layer.shadowRadius = 2
@@ -205,11 +205,12 @@ extension BrowseViewController: UICollectionViewDataSource {
     }
 }
 
-extension BrowseViewController {
+extension CollectionViewController {
     
     func loadFeeds() {
+        let randomPage = Int.random(in: 1...10)
+        let randomLimit = Int.random(in: 20...40)
         loadingIndicator.startAnimating()
-        
         let localCollections = UserDefaultsHelper.standard.collections
         if !localCollections.isEmpty {
             self.feeds = localCollections
@@ -218,7 +219,10 @@ extension BrowseViewController {
             return
         }
         
-        API?.getFeeds(completionHandler: { [weak self] result, error in
+        API?.getFeeds(
+            page: randomPage,
+            limit: randomLimit,
+            completionHandler: { [weak self] result, error in
             guard let _self = self else {return}
             _self.feeds = result?.data ?? []
             _self.collectionView.reloadData()
@@ -238,7 +242,7 @@ extension BrowseViewController {
     }
 }
 
-final class BrowseViewCell: UICollectionViewCell {
+final class CollectionViewCell: UICollectionViewCell {
 
     let avatarView = UIImageView()
     let usernameLabel = UILabel()
@@ -453,7 +457,7 @@ final class BrowseViewCell: UICollectionViewCell {
     }
 }
 
-extension BrowseViewCell {
+extension CollectionViewCell {
     
     @objc private func onLikeButtonTapped() {
         
