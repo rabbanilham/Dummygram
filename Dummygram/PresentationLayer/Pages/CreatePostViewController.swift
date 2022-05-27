@@ -38,7 +38,7 @@ final class CreatePostViewController: UITableViewController {
         tableView.separatorStyle = .none
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         tableView.rowHeight = UITableView.automaticDimension
-        
+        setupTapWillDismissKeyboard()
     }
     
     override func tableView(
@@ -187,8 +187,17 @@ final class CreatePostViewController: UITableViewController {
     override func numberOfSections(in tableView: UITableView) -> Int {
         return 1
     }
-    
-    
+
+}
+
+extension CreatePostViewController {
+    func setupTapWillDismissKeyboard() {
+        let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        view.addGestureRecognizer(tap)
+    }
+}
+
+extension CreatePostViewController {
     @objc func onCancelButtonTap() {
         navigationController?.dismiss(animated: true)
     }
@@ -225,10 +234,7 @@ final class CreatePostViewController: UITableViewController {
     }
     
     @objc func onSendButtonTap() {
-        guard let caption = postCaption,
-              let image = postImageUrl
-        else { return }
-
+        guard let caption = postCaption else { return }
         let ownerIds: [String] = [
             "60d0fe4f5311236168a109e8",
             "60d0fe4f5311236168a10a1a",
@@ -241,11 +247,15 @@ final class CreatePostViewController: UITableViewController {
         let API = DummyAPI()
         API.addFeed(
             text: caption,
-            image: "\(image)",
+            image: ownerIds.randomElement()!,
             likes: nil,
             tags: nil,
             owner: ownerIds.randomElement()!
         )
         self.dismiss(animated: true)
+    }
+    
+    @objc func dismissKeyboard() {
+        tableView.endEditing(true)
     }
 }

@@ -13,7 +13,7 @@ final class CollectionViewController: UIViewController {
     
     lazy var collectionView: UICollectionView = makeCollectionView()
     
-    var feeds: [FeedModel] = []
+    var collections: [[FeedModel]] = [[],[]]
     var API: DummyAPI?
     var loadingIndicator = UIActivityIndicatorView()
     
@@ -37,6 +37,7 @@ final class CollectionViewController: UIViewController {
             target: self,
             action: #selector(refreshFeeds)
         )
+        refreshButton.tintColor = .label
         navigationItem.rightBarButtonItem = refreshButton
 
         view.addSubview(loadingIndicator)
@@ -54,7 +55,9 @@ final class CollectionViewController: UIViewController {
         loadingIndicator.makeConstraint(builder: builder)
         loadingIndicator.hidesWhenStopped = true
         
-        loadFeeds()
+        loadFeeds(forSection: 0)
+        loadFeeds(forSection: 1)
+//        print("section element count: \(collections[0].count)")
     }
     
     private func setupAddSubview() {
@@ -62,18 +65,14 @@ final class CollectionViewController: UIViewController {
     }
     
     private func setupConstraint() {
-        
         let builder: (UIView) -> [NSLayoutConstraint] = { view in
-            
             let constraints: [NSLayoutConstraint] = [
                 view.leadingAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.leadingAnchor),
                 view.trailingAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.trailingAnchor),
                 view.topAnchor.constraint(equalTo: self.view.topAnchor),
                 view.bottomAnchor.constraint(equalTo: self.view.bottomAnchor)
             ]
-            
             return constraints
-            
         }
         collectionView.makeConstraint(builder: builder)
     }
@@ -103,13 +102,14 @@ final class CollectionViewController: UIViewController {
         
         let groupSize = NSCollectionLayoutSize(
             widthDimension: .fractionalWidth(0.8),
-            heightDimension: .fractionalWidth(1)
+            heightDimension: .absolute(440)
         )
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+        group.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0)
         
         let section = NSCollectionLayoutSection(group: group)
         section.contentInsets = NSDirectionalEdgeInsets(
-            top: 130,
+            top: 50,
             leading: 2.5,
             bottom: 50,
             trailing: 2.5
@@ -144,14 +144,14 @@ final class CollectionViewController: UIViewController {
 extension CollectionViewController: UICollectionViewDataSource {
     
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        return 1
+        return collections.count
     }
     
     func collectionView(
         _ collectionView: UICollectionView,
         numberOfItemsInSection section: Int
     ) -> Int {
-        return feeds.count
+        return collections[section].count
     }
     
     func collectionView(
@@ -159,9 +159,10 @@ extension CollectionViewController: UICollectionViewDataSource {
         cellForItemAt indexPath: IndexPath
     ) -> UICollectionViewCell {
         let section: Int = indexPath.section
+        let row = indexPath.row
         switch section {
-        case 0:
-            let feed = feeds[indexPath.row]
+        case 0,1:
+            let feed = (collections[section])[row]
             return dequeueCell(CollectionViewCell.self, in: collectionView, at: indexPath) { cell in
                 cell.setFeed(with: feed)
                 cell.layer.cornerRadius = 10
@@ -174,13 +175,15 @@ extension CollectionViewController: UICollectionViewDataSource {
                     vc.postId = postId
                     vc.API = DummyAPI()
                     let nc = UINavigationController()
+                    nc.modalPresentationStyle = .fullScreen
                     nc.addChild(vc)
-                    self.navigationController?.showDetailViewController(nc, sender: Any.self)
+                    self.present(nc, animated: true)
                 }
                 cell.onAvatarTap = {
+                    let user = self.collections[section][row].owner
                     let vc = UserDetailViewController()
-                    vc.title = self.feeds[indexPath.row].owner.firstName.lowercased() + self.feeds[indexPath.row].owner.lastName.lowercased()
-                    let userId = self.feeds[indexPath.row].owner.id
+                    vc.title = user.firstName.lowercased() + user.lastName.lowercased()
+                    let userId = user.id
                     vc.userId = userId
                     vc.API = DummyAPI()
                     let nc = UINavigationController()
@@ -207,13 +210,13 @@ extension CollectionViewController: UICollectionViewDataSource {
 
 extension CollectionViewController {
     
-    func loadFeeds() {
+    func loadFeeds(forSection: Int) {
         let randomPage = Int.random(in: 1...10)
         let randomLimit = Int.random(in: 20...40)
         loadingIndicator.startAnimating()
         let localCollections = UserDefaultsHelper.standard.collections
         if !localCollections.isEmpty {
-            self.feeds = localCollections
+            self.collections[forSection] = localCollections
             self.collectionView.reloadData()
             self.loadingIndicator.stopAnimating()
             return
@@ -224,7 +227,7 @@ extension CollectionViewController {
             limit: randomLimit,
             completionHandler: { [weak self] result, error in
             guard let _self = self else {return}
-            _self.feeds = result?.data ?? []
+            _self.collections[forSection] = result?.data ?? []
             _self.collectionView.reloadData()
             UserDefaultsHelper.standard.collections = result?.data ?? []
             _self.loadingIndicator.stopAnimating()
@@ -232,8 +235,9 @@ extension CollectionViewController {
     }
     
     @objc func refreshFeeds() {
-        UserDefaults.standard.removeObject(forKey: "feeds")
-        loadFeeds()
+        UserDefaults.standard.removeObject(forKey: "collections")
+        loadFeeds(forSection: 0)
+        loadFeeds(forSection: 1)
         self.collectionView.reloadData()
     }
     
@@ -254,6 +258,7 @@ final class CollectionViewCell: UICollectionViewCell {
     let saveButton = UIButton()
     let likesCountLabel = UILabel()
     let captionLabel = UILabel()
+    let publishedDateLabel = UILabel()
     
     var postId: String?
     
@@ -302,6 +307,7 @@ final class CollectionViewCell: UICollectionViewCell {
         contentView.addSubview(saveButton)
         contentView.addSubview(likesCountLabel)
         contentView.addSubview(captionLabel)
+        contentView.addSubview(publishedDateLabel)
         
         let avatarTap = UITapGestureRecognizer(target: self, action: #selector(onAvatarImageTapped))
         avatarView.translatesAutoresizingMaskIntoConstraints = false
@@ -357,6 +363,11 @@ final class CollectionViewCell: UICollectionViewCell {
         captionLabel.numberOfLines = 0
         captionLabel.textAlignment = .left
         
+        publishedDateLabel.translatesAutoresizingMaskIntoConstraints = false
+        publishedDateLabel.font = .systemFont(ofSize: 14)
+        publishedDateLabel.textColor = .secondaryLabel
+        publishedDateLabel.numberOfLines = 0
+        
         NSLayoutConstraint.activate([
         
             avatarView.heightAnchor.constraint(equalToConstant: 32),
@@ -403,6 +414,9 @@ final class CollectionViewCell: UICollectionViewCell {
             captionLabel.leadingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.leadingAnchor),
             captionLabel.trailingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.trailingAnchor),
             
+            publishedDateLabel.topAnchor.constraint(equalTo: captionLabel.bottomAnchor, constant: 10),
+//            publishedDateLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -0),
+            publishedDateLabel.leadingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.leadingAnchor),
         ])
 
     }
@@ -423,8 +437,32 @@ final class CollectionViewCell: UICollectionViewCell {
         
         self.captionLabel.attributedText = attrUsername
         
+        self.publishedDateLabel.text = dateFormatting(date: data.publishDate).uppercased()
+        
         self.postId = data.id
+    }
+    
+    func dateFormatting(date: String) -> String {
+        let today = Date.now
+        let dateFormatterGet = DateFormatter()
+        dateFormatterGet.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
 
+        let dateFormatterPrint = DateFormatter()
+        dateFormatterPrint.dateFormat = "dd MMMM yyyy"
+
+        let intervalFormatter = DateComponentsFormatter()
+        intervalFormatter.maximumUnitCount = 1
+        intervalFormatter.unitsStyle = .full
+        intervalFormatter.zeroFormattingBehavior = .dropAll
+        intervalFormatter.allowedUnits = [.day, .hour, .minute, .second]
+        
+        let formattedDate = dateFormatterGet.date(from: String(date.prefix(18)))
+        let intervalString = intervalFormatter.string(from: formattedDate!, to: today)
+        if Int((intervalString?.prefix(3))!)! > 364 {
+            return dateFormatterPrint.string(from: formattedDate!)
+        } else {
+            return "\(intervalString!) ago"
+        }
     }
     
     func menuElements() -> [UIMenuElement] {

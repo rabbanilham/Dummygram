@@ -58,9 +58,11 @@ struct DummyAPI {
     }
     
     func getUsers(
+        page: Int,
+        limit: Int,
         completionHandler: @escaping (DataModel<UserShortModel>?, AFError?) -> Void
     ) {
-        let query = "/user"
+        let query = "/user?page=\(page)&limit=\(limit)"
         let headers: HTTPHeaders = [
             "app-id" : "625534f6d7e95833f9570907",
         ]

@@ -7,7 +7,6 @@
 
 import UIKit
 import Kingfisher
-import IQKeyboardManagerSwift
 
 final class CommentViewController: UITableViewController {
     
@@ -20,24 +19,8 @@ final class CommentViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Add comment"
+        setupNavigationBar()
         view.backgroundColor = .systemBackground
-        
-        IQKeyboardManager.shared.enable = true
-        
-        let tap = UITapGestureRecognizer(
-            target: self,
-            action: #selector(dismissKeyboard)
-        )
-        let swipe = UISwipeGestureRecognizer(
-            target: self,
-            action: #selector(swipeDismissKeyboard)
-        )
-        swipe.direction = .down
-        view.addGestureRecognizer(tap)
-        view.addGestureRecognizer(swipe)
-        swipe.require(toFail: tap)
-        
         view.addSubview(loadingIndicator)
         
         let builder: (UIView) -> [NSLayoutConstraint] = { load in
@@ -52,7 +35,6 @@ final class CommentViewController: UITableViewController {
         
         loadingIndicator.makeConstraint(builder: builder)
         
-        
         tableView.register(
             FeedAndTextFieldCell.self,
             forCellReuseIdentifier: "\(FeedAndTextFieldCell.self)"
@@ -61,27 +43,15 @@ final class CommentViewController: UITableViewController {
             CommentCell.self,
             forCellReuseIdentifier: "\(CommentCell.self)"
         )
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "noCommentCell")
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 80
         tableView.separatorStyle = .none
         tableView.beginUpdates()
         tableView.endUpdates()
         
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            barButtonSystemItem: .cancel,
-            target: self,
-            action: #selector(onCancelButtonTap)
-        )
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Send",
-            style: .done,
-            target: self,
-            action: #selector(onSendCommentButtonTap)
-        )
-        
         setFeed()
         setComments()
-
     }
     
     override func tableView(
@@ -164,7 +134,7 @@ final class CommentViewController: UITableViewController {
             ) {  (contextualAction, view, boolValue) in
                 let ac = UIAlertController(
                     title: "Say goodbye to this comment",
-                    message: "Are you sure want to delete this comment? This action cannot be undone.",
+                    message: "Are you sure want to delete this comment? This action cannot be undone.\n Note: default comments can't be deleted.",
                     preferredStyle: .alert
                 )
                 let delete = UIAlertAction(
@@ -200,6 +170,34 @@ final class CommentViewController: UITableViewController {
 }
 
 extension CommentViewController {
+    
+    func setupNavigationBar() {
+        title = "Add comment"
+        let cancelButton = UIBarButtonItem(
+            image: UIImage(systemName: "xmark"),
+            style: .plain,
+            target: self,
+            action: #selector(onCancelButtonTap)
+        )
+        cancelButton.tintColor = .label
+        navigationItem.leftBarButtonItem = cancelButton
+        let sendButton = UIBarButtonItem(
+            image: UIImage(systemName: "paperplane"),
+            style: .plain,
+            target: self,
+            action: #selector(onSendCommentButtonTap)
+        )
+        sendButton.tintColor = .label
+        navigationItem.rightBarButtonItem = sendButton
+    }
+    
+    func setupTapWillDismissKeyboard() {
+        let tap = UITapGestureRecognizer(
+            target: self,
+            action: #selector(dismissKeyboard)
+        )
+        view.addGestureRecognizer(tap)
+    }
     
     func setFeed() {
         loadingIndicator.startAnimating()
@@ -311,7 +309,7 @@ final class FeedAndTextFieldCell: UITableViewCell {
         textField.borderStyle = .roundedRect
         textField.layer.cornerRadius = 8
         textField.placeholder = "Add your comment..."
-        textField.backgroundColor = .systemBackground
+        textField.backgroundColor = .secondarySystemBackground
         textField.clearButtonMode = .whileEditing
         textField.addTarget(
             Any.self,

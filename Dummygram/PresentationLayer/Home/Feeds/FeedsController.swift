@@ -15,6 +15,7 @@ class FeedsController: UITableViewController {
     var currentLimit: Int?
     var loadingIndicator = UIActivityIndicatorView()
     var isLiked: [Bool] = []
+    let cache = ImageCache.default
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -38,6 +39,13 @@ class FeedsController: UITableViewController {
             action: #selector(refreshFeeds)
         )
         refreshButton.tintColor = .label
+        let softRefreshButton = UIBarButtonItem(
+            image: UIImage(systemName: "arrow.triangle.capsulepath"),
+            style: .plain,
+            target: self,
+            action: #selector(softRefresh)
+        )
+        softRefreshButton.tintColor = .label
         let logoutButton = UIBarButtonItem(
             image: UIImage(systemName: "person.fill.xmark"),
             style: .plain,
@@ -45,7 +53,7 @@ class FeedsController: UITableViewController {
             action: #selector(logOut)
         )
         logoutButton.tintColor = .label
-        navigationItem.leftBarButtonItem = logoutButton
+        navigationItem.leftBarButtonItems = [logoutButton, softRefreshButton]
         navigationItem.rightBarButtonItems = [createPostButton, refreshButton]
         
         tableView.rowHeight = UITableView.automaticDimension
@@ -82,12 +90,13 @@ class FeedsController: UITableViewController {
         }
         
         cell.selectionStyle = .none
-        let feed = feeds[indexPath.row]
+        let row = indexPath.row
+        let feed = feeds[row]
         cell.setFeed(with: feed)
         cell.onCommentTap = {
             let vc = CommentViewController()
             vc.postId = feed.id
-            guard let postId = cell.postId else {return}
+            guard let postId = cell.postId else { return }
             vc.postId = postId
             vc.API = DummyAPI()
             let nc = UINavigationController()
@@ -116,7 +125,7 @@ class FeedsController: UITableViewController {
             API?.getFeed(
                 feedId: feed.id,
                 completionHandler: { result, error in
-                    cell.contentView.bringSubviewToFront(cell.loadingView)
+                    cell.contentView.bringSubviewToFront(cell.blurredLoadingView)
                     if isFullCaptionExpanded {
                         DispatchQueue.main.async {
                             guard let result = result else { return }
@@ -133,8 +142,9 @@ class FeedsController: UITableViewController {
                             cell.captionLabel.attributedText = attrUsername
                             cell.loadingIndicator.stopAnimating()
                             cell.loadingIndicator.hidesWhenStopped = true
-                            cell.contentView.sendSubviewToBack(cell.loadingView)
-                            cell.loadingView.alpha = 0
+//                            cell.contentView.sendSubviewToBack(cell.blurEffectView)
+//                            cell.blurEffectView.alpha = 0
+                            cell.blurredLoadingView.fadeOut()
                             tableView.beginUpdates()
                             tableView.endUpdates()
                             tableView.layoutIfNeeded()
@@ -144,8 +154,9 @@ class FeedsController: UITableViewController {
                             cell.setFeed(with: feed)
                             cell.loadingIndicator.stopAnimating()
                             cell.loadingIndicator.hidesWhenStopped = true
-                            cell.contentView.sendSubviewToBack(cell.loadingView)
-                            cell.loadingView.alpha = 0
+//                            cell.contentView.sendSubviewToBack(cell.blurEffectView)
+//                            cell.blurEffectView.alpha = 0
+                            cell.blurredLoadingView.fadeOut()
                             tableView.beginUpdates()
                             tableView.endUpdates()
                             tableView.layoutIfNeeded()
@@ -183,7 +194,7 @@ extension FeedsController {
             page: randomPage,
             limit: randomLimit,
             completionHandler: { [weak self] result, error in
-            guard let _self = self else {return}
+            guard let _self = self else { return }
             _self.feeds = result?.data ?? []
             _self.tableView.reloadData()
             UserDefaultsHelper.standard.feeds = result?.data ?? []
@@ -191,7 +202,7 @@ extension FeedsController {
         })
     }
     
-    func softReload() {
+    @objc func softRefresh() {
         loadingIndicator.startAnimating()
         guard let page = currentPage,
               let limit = currentLimit
@@ -213,6 +224,8 @@ extension FeedsController {
         UserDefaults.standard.removeObject(forKey: "feeds")
         UserDefaults.standard.removeObject(forKey: "collections")
         UserDefaults.standard.removeObject(forKey: "users")
+        cache.clearMemoryCache()
+        cache.clearDiskCache { print("Done") }
         tabBarController?.navigationController?.popViewController(animated: true)
     }
     
@@ -242,8 +255,10 @@ class FeedCell: UITableViewCell {
     let saveButton = UIButton()
     let likesCountLabel = UILabel()
     let captionLabel = UILabel()
+    let publishedDateLabel = UILabel()
     
-    let loadingView = UIView()
+    let blurEffect = UIBlurEffect(style: .regular)
+    let blurredLoadingView = UIVisualEffectView()
     let loadingIndicator = UIActivityIndicatorView()
     
     var postId: String?
@@ -292,8 +307,8 @@ class FeedCell: UITableViewCell {
     
     func defineLayout() {
         
-//        contentView.addSubview(loadingView)
-        loadingView.addSubview(loadingIndicator)
+        contentView.addSubview(blurredLoadingView)
+        blurredLoadingView.contentView.addSubview(loadingIndicator)
         contentView.addSubview(avatarView)
         contentView.addSubview(usernameLabel)
         contentView.addSubview(moreButton)
@@ -304,6 +319,7 @@ class FeedCell: UITableViewCell {
         contentView.addSubview(saveButton)
         contentView.addSubview(likesCountLabel)
         contentView.addSubview(captionLabel)
+        contentView.addSubview(publishedDateLabel)
         contentView.backgroundColor = .systemBackground
         
         let avatarTap = UITapGestureRecognizer(
@@ -392,12 +408,20 @@ class FeedCell: UITableViewCell {
         captionLabel.numberOfLines = 0
         captionLabel.addGestureRecognizer(captionTap)
         
-        loadingView.translatesAutoresizingMaskIntoConstraints = false
-        loadingView.backgroundColor = .label.withAlphaComponent(0.7)
+        blurredLoadingView.translatesAutoresizingMaskIntoConstraints = false
+        blurredLoadingView.effect = blurEffect
+        blurredLoadingView.layer.cornerRadius = 12
+        blurredLoadingView.clipsToBounds = true
+        blurredLoadingView.alpha = 0
         
         loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
         loadingIndicator.style = .medium
-        loadingIndicator.color = .systemBackground
+        loadingIndicator.color = .label
+        
+        publishedDateLabel.translatesAutoresizingMaskIntoConstraints = false
+        publishedDateLabel.font = .systemFont(ofSize: 14)
+        publishedDateLabel.textColor = .secondaryLabel
+        publishedDateLabel.numberOfLines = 0
         
         NSLayoutConstraint.activate([
         
@@ -441,9 +465,12 @@ class FeedCell: UITableViewCell {
 
             captionLabel.topAnchor.constraint(equalTo: likesCountLabel.bottomAnchor, constant: 10),
 //            captionLabel.widthAnchor.constraint(equalTo: contentView.layoutMarginsGuide.widthAnchor),
-            captionLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20),
             captionLabel.leadingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.leadingAnchor),
             captionLabel.trailingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.trailingAnchor),
+            
+            publishedDateLabel.topAnchor.constraint(equalTo: captionLabel.bottomAnchor, constant: 10),
+            publishedDateLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20),
+            publishedDateLabel.leadingAnchor.constraint(equalTo: contentView.layoutMarginsGuide.leadingAnchor),
             
             contentView.heightAnchor.constraint(greaterThanOrEqualToConstant: UITableView.automaticDimension)
         
@@ -495,9 +522,32 @@ class FeedCell: UITableViewCell {
             attrUsername.append(attrMore)
         }
         self.captionLabel.attributedText = attrUsername
-        
+        self.publishedDateLabel.text = dateFormatting(date: data.publishDate).uppercased()
         self.postId = data.id
 
+    }
+    
+    func dateFormatting(date: String) -> String {
+        let today = Date.now
+        let dateFormatterGet = DateFormatter()
+        dateFormatterGet.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+
+        let dateFormatterPrint = DateFormatter()
+        dateFormatterPrint.dateFormat = "dd MMMM yyyy"
+
+        let intervalFormatter = DateComponentsFormatter()
+        intervalFormatter.maximumUnitCount = 1
+        intervalFormatter.unitsStyle = .full
+        intervalFormatter.zeroFormattingBehavior = .dropAll
+        intervalFormatter.allowedUnits = [.day, .hour, .minute, .second]
+        
+        let formattedDate = dateFormatterGet.date(from: String(date.prefix(18)))
+        let intervalString = intervalFormatter.string(from: formattedDate!, to: today)
+        if Int((intervalString?.prefix(3))!)! > 364 {
+            return dateFormatterPrint.string(from: formattedDate!)
+        } else {
+            return "\(intervalString!) ago"
+        }
     }
     
     func menuElements() -> [UIMenuElement] {
@@ -588,21 +638,27 @@ extension FeedCell {
     
     @objc private func onCaptionLabelTapped() {
         isCaptionExpanded.toggle()
+        let last14 = captionLabel.text?.suffix(13)
+        guard last14 == "... show more" else {
+            blurredLoadingView.fadeOut()
+            return
+        }
         onCaptionTap?(isCaptionExpanded)
-        contentView.addSubview(loadingView)
-        loadingView.alpha = 0.5
+        contentView.addSubview(blurredLoadingView)
+//        blurEffectView.alpha = 1
+        blurredLoadingView.fadeIn()
         if isCaptionExpanded {
             
         }
         
         NSLayoutConstraint.activate([
-            loadingView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-            loadingView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            loadingView.heightAnchor.constraint(equalTo: contentView.heightAnchor),
-            loadingView.widthAnchor.constraint(equalTo: contentView.widthAnchor),
+            blurredLoadingView.heightAnchor.constraint(equalToConstant: 200),
+            blurredLoadingView.widthAnchor.constraint(equalTo: blurredLoadingView.heightAnchor),
+            blurredLoadingView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            blurredLoadingView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             
-            loadingIndicator.centerXAnchor.constraint(equalTo: loadingView.centerXAnchor),
-            loadingIndicator.centerYAnchor.constraint(equalTo: loadingView.centerYAnchor),
+            loadingIndicator.centerXAnchor.constraint(equalTo: blurredLoadingView.contentView.centerXAnchor),
+            loadingIndicator.centerYAnchor.constraint(equalTo: blurredLoadingView.contentView.centerYAnchor),
         ])
         loadingIndicator.startAnimating()
     }

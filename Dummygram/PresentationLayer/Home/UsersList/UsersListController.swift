@@ -12,9 +12,9 @@ class UsersListController: UITableViewController {
     
     var API: DummyAPI?
     var displayedUsers: [UserShortModel] = []
+    var defaultDisplayedUsers: [UserShortModel] = []
     
     override func viewDidLoad() {
-        
         super.viewDidLoad()
         
         tableView.register(
@@ -24,8 +24,8 @@ class UsersListController: UITableViewController {
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 100
         tableView.separatorStyle = .none
-        title = "DummyAPI.io"
         
+        setupNavigationBar()
         loadUsers()
     }
     
@@ -73,16 +73,41 @@ class UsersListController: UITableViewController {
 
 extension UsersListController {
     
+    func setupNavigationBar() {
+        title = "DummyAPI.io"
+        let refreshButton = UIBarButtonItem(
+            image: UIImage(systemName: "arrow.clockwise"),
+            style: .plain,
+            target: self,
+            action: #selector(refreshUsers)
+        )
+        refreshButton.tintColor = .label
+        navigationItem.leftBarButtonItem = refreshButton
+        let searchController = UISearchController()
+        searchController.searchBar.searchBarStyle = .minimal
+        searchController.searchBar.delegate = self
+        searchController.searchBar.placeholder = "Search for a user by name..."
+        searchController.automaticallyShowsCancelButton = true
+        searchController.delegate = self
+        navigationItem.searchController = searchController
+        navigationItem.hidesSearchBarWhenScrolling = false
+    }
+    
     func loadUsers() {
+        let randomPage: Int = Int.random(in: 0...1)
         let localUsers = UserDefaultsHelper.standard.usersList
         if !localUsers.isEmpty {
             self.displayedUsers = localUsers
             self.tableView.reloadData()
             return
         }
-        API?.getUsers(completionHandler: { [weak self] result, error in
+        API?.getUsers(
+            page: randomPage,
+            limit: 50,
+            completionHandler: { [weak self] result, error in
             guard let _self = self else {return}
             _self.displayedUsers = result?.data ?? []
+            _self.defaultDisplayedUsers = result?.data ?? []
             _self.tableView.reloadData()
             _self.tableView.beginUpdates()
             _self.tableView.endUpdates()
@@ -90,6 +115,31 @@ extension UsersListController {
         })
     }
     
+    @objc func refreshUsers() {
+        UserDefaults.standard.removeObject(forKey: "users")
+        loadUsers()
+        self.tableView.reloadData()
+    }
+    
+}
+
+extension UsersListController: UISearchControllerDelegate, UISearchBarDelegate {
+    func searchBar(
+        _ searchBar: UISearchBar,
+        textDidChange searchText: String
+    ) {
+        displayedUsers = searchText.isEmpty ? defaultDisplayedUsers : defaultDisplayedUsers.filter {
+            (user: UserShortModel) -> Bool in
+            let username = user.firstName + user.lastName
+            return username.range(
+                of: searchText,
+                options: .caseInsensitive,
+                range: nil,
+                locale: nil
+            ) != nil
+        }
+        tableView.reloadData()
+    }
 }
 
 class UserCell: UITableViewCell {
